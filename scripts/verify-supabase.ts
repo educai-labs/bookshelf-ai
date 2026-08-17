@@ -25,8 +25,9 @@ import pg from 'pg';
 
 const { Client } = pg;
 
+
 /* ------------------------------------------------------------------ */
-/* Carga de variables de entorno (.env.local si existe)                */
+/* Carga de variables de entorno (.env.local si existe)               */
 /* ------------------------------------------------------------------ */
 const envLocalPath = resolve(process.cwd(), '.env.local');
 
