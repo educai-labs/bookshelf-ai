@@ -1,0 +1,38 @@
+# ============================================================
+# Bookshelf — .gitignore (raíz)
+# ============================================================
+
+# --- Entorno: NUNCA subir secretos ---
+.env
+.env.*
+.env.local
+!.env.example
+*.key
+*.pem
+
+# --- Node / JS ---
+node_modules/
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+npm-debug.log*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# --- Supabase (local) ---
+supabase/.temp/
+supabase/.branches/
+
+# --- IDE / SO ---
+.idea/
+.vscode/
+.DS_Store
