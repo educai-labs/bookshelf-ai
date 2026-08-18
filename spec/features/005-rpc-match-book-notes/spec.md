@@ -1,6 +1,6 @@
 # 005 · RPC match_book_notes
 
-**Estado:** propuesta
+**Estado:** en curso
 
 ## Qué hace
 
