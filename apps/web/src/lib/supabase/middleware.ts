@@ -23,7 +23,7 @@ const supabaseAnonKey = requireEnv(
  * Refresca la sesión del usuario en cada request (edge middleware).
  * - `createServerClient` lee/escribe las cookies de auth del request.
  * - `supabase.auth.getUser()` valida el token; si no hay usuario y la ruta
- *   es protegida → redirect a `/login`.
+ *   es protegida → redirect a `/login?redirectTo=<url original>`.
  *
  * IMPORTANTE: no ejecutar lógica entre `createServerClient` y `getUser()`
  * (puede romper la sesión). Devolver siempre `supabaseResponse`.
@@ -56,15 +56,18 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
-  if (
-    !user &&
-    !pathname.startsWith("/login") &&
-    !pathname.startsWith("/register")
-  ) {
+  const isPublicPath =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/auth/callback");
+
+  if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    // Preserva la URL original para redirigir tras autenticarse.
+    url.searchParams.set("redirectTo", `${pathname}${search}`);
     return NextResponse.redirect(url);
   }
 

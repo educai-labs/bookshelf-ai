@@ -41,4 +41,15 @@ describe("SessionProvider", () => {
     expect(await screen.findByTestId("loading")).toHaveTextContent("false");
     expect(screen.getByTestId("user")).toHaveTextContent("no-user");
   });
+
+  it("throws when useSessionContext is used outside a provider", () => {
+    function BrokenConsumer() {
+      useSessionContext();
+      return null;
+    }
+
+    expect(() => render(<BrokenConsumer />)).toThrow(
+      "useSessionContext must be used within a SessionProvider",
+    );
+  });
 });

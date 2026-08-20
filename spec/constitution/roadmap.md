@@ -16,17 +16,17 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 10. **010 · Notes CRUD API** — GET `/books/{id}/notes` (paginado), POST `/books/{id}/notes` (crea + dispara vectorización background). Auth + ownership check.
 
 11. **011 · Next.js UI Scaffold** — `create-next-app` TS + Tailwind + shadcn/ui; Supabase client (browser + server); SessionProvider; layout base; route groups `(auth)` y `(dashboard)`.
+12. **012 · Auth UI + Middleware** — `/login`, `/register`; Google OAuth flow; protected routes middleware (redirige a login); logout.
 
 ## Siguiente 🔜
 
 _Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez._
 
-7. **012 · Auth UI + Middleware** — `/login`, `/register`; Google OAuth flow; protected routes middleware (redirige a login); logout.
-8. **013 · Dashboard Library Grid** — Grid responsive cards (portada, título, autor, status badge, rating stars); filtros: status tabs, rating select, búsqueda texto debounced 300ms; skeleton loading; empty state.
-9. **014 · Add Book Modal + ISBN** — Modal input ISBN → `GET /api/v1/books/lookup?isbn=` → preview metadatos → "Guardar" → `POST /api/v1/books` → refresh grid.
-10. **015 · Book Detail / Reading Sheet** — `/book/[id]`: portada grande, metadatos, selector status, rating 1-5, editor Markdown (textarea + preview), lista notas con timestamp. "Guardar nota" → POST notes.
-11. **016 · Note Vectorization Pipeline** — Al crear nota: chunking ~500 tokens / 50 overlap (tiktoken); batch embeddings `text-embedding-004`; upsert `book_notes` con `chunk_index` + `embedding`. Background task.
-12. **017 · Dual AI Chat SSE** — POST `/api/v1/ai/chat` streaming SSE. Modo `book_id`: inyecta libro + notas completas → `gemini-2.0-flash`. Modo sin `book_id`: embedding query → RPC `match_book_notes` (threshold 0.7, count 10) → stream. Frontend `EventSource` / fetch+ReadableStream.
+7. **013 · Dashboard Library Grid** — Grid responsive cards (portada, título, autor, status badge, rating stars); filtros: status tabs, rating select, búsqueda texto debounced 300ms; skeleton loading; empty state.
+8. **014 · Add Book Modal + ISBN** — Modal input ISBN → `GET /api/v1/books/lookup?isbn=` → preview metadatos → "Guardar" → `POST /api/v1/books` → refresh grid.
+9. **015 · Book Detail / Reading Sheet** — `/book/[id]`: portada grande, metadatos, selector status, rating 1-5, editor Markdown (textarea + preview), lista notas con timestamp. "Guardar nota" → POST notes.
+10. **016 · Note Vectorization Pipeline** — Al crear nota: chunking ~500 tokens / 50 overlap (tiktoken); batch embeddings `text-embedding-004`; upsert `book_notes` con `chunk_index` + `embedding`. Background task.
+11. **017 · Dual AI Chat SSE** — POST `/api/v1/ai/chat` streaming SSE. Modo `book_id`: inyecta libro + notas completas → `gemini-2.0-flash`. Modo sin `book_id`: embedding query → RPC `match_book_notes` (threshold 0.7, count 10) → stream. Frontend `EventSource` / fetch+ReadableStream.
 
 ## Backlog / ideas 💡
 

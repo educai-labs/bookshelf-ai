@@ -1,6 +1,6 @@
 "use client";
 
-import { useSessionContext } from "@/components/providers/SessionProvider";
+import { useSessionContext } from "@/components/auth/SessionProvider";
 
 /**
  * Acceso al usuario autenticado desde Client Components.
@@ -12,11 +12,11 @@ export function useUser() {
 }
 
 /**
- * Sesión actual + estado de carga.
+ * Sesión actual + usuario + estado de carga.
  * El contexto se alimenta de `supabase.auth.getSession()` + listener
  * `onAuthStateChange` (gestionado en `SessionProvider`).
  */
 export function useSession() {
-  const { session, isLoading } = useSessionContext();
-  return { session, isLoading };
+  const { session, user, isLoading } = useSessionContext();
+  return { session, user, isLoading };
 }

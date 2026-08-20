@@ -1,14 +1,17 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
-import { createServerClient } from "@/lib/supabase/server";
-import { Header } from "@/components/layout/Header";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { SessionProvider } from "@/components/auth/SessionProvider";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Footer } from "@/components/layout/Footer";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { createServerClient } from "@/lib/supabase/server";
 
 /**
- * Layout protegido del route group `(dashboard)`: verifica la sesión en el
- * servidor (redirige a `/login` si no hay usuario) y monta Header + Sidebar.
+ * Layout protegido del route group `(dashboard)`:
+ * - Verifica la sesión en el servidor (redirige a `/login` si no hay usuario).
+ * - `SessionProvider` (Client) provee session/user a todo el árbol.
+ * - `DashboardHeader` (avatar + logout) + Sidebar + main + Footer.
  */
 export default async function DashboardLayout({
   children,
@@ -26,12 +29,14 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <Header user={user} />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-6">{children}</main>
-      </div>
-      <Footer />
+      <SessionProvider>
+        <DashboardHeader />
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 p-6">{children}</main>
+        </div>
+        <Footer />
+      </SessionProvider>
     </div>
   );
 }

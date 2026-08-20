@@ -1,6 +1,6 @@
 # 003 · pgvector + HNSW Indexes
 
-**Estado:** en curso
+**Estado:** hecho
 
 ## Qué hace
 

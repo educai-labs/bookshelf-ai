@@ -1,6 +1,23 @@
+import type { Metadata } from "next";
+
+import { RegisterForm } from "./RegisterForm";
+
+export const metadata: Metadata = {
+  title: "Crear cuenta — Bookshelf",
+};
+
 /**
- * Placeholder de registro — la UI real se implementa en la feature 012.
+ * Página pública de registro (Server Component).
+ * `RegisterForm` maneja el alta en cliente (email/password o Google).
  */
 export default function RegisterPage() {
-  return <h1 className="text-2xl font-semibold">Register - Feature 012</h1>;
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold tracking-tight">Bookshelf</h1>
+        <p className="text-muted-foreground">Crea tu cuenta gratuita</p>
+      </div>
+      <RegisterForm />
+    </div>
+  );
 }

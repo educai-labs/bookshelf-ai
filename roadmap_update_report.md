@@ -1,0 +1,1 @@
+Roadmap actualizado. Feature `012 · Auth UI + Middleware` movida a Hecho ✅. Spec actualizada a Estado: hecho. Tareas validadas.

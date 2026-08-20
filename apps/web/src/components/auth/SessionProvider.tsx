@@ -25,11 +25,9 @@ const SessionContext = createContext<SessionContextValue | undefined>(
 );
 
 /**
- * Wrapper fino sobre `createContext`/`useContext` para la sesión de usuario.
- * Expone `user`/`session` a los Client Components sin prop-drilling.
- *
- * La suscripción a `supabase.auth.getSession()` + `onAuthStateChange`
- * (que alimenta el contexto) la gestiona `useSession` en `hooks/useAuth.ts`.
+ * Provee `session`/`user` a todo el árbol de Client Components bajo
+ * `(dashboard)`. Obtiene la sesión inicial via `supabase.auth.getSession()`
+ * y se mantiene sincronizado suscribiéndose a `onAuthStateChange`.
  */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);

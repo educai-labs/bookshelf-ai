@@ -16,6 +16,7 @@ dist/
 build/
 .next/
 out/
+coverage/
 *.tsbuildinfo
 npm-debug.log*
 

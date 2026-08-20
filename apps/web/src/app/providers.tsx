@@ -4,26 +4,24 @@ import type { ReactNode } from "react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 
-import { SessionProvider } from "@/components/providers/SessionProvider";
-
 /**
  * Providers globales del layout raíz:
- * - `SessionProvider`: contexto de sesión (user/session) para Client Components.
  * - `ThemeProvider` (next-themes): dark mode via `class` strategy.
- * - `Toaster` (sonner): toasts globales.
+ * - `Toaster` (sonner): toasts globales (login, register, logout, …).
+ *
+ * Nota: `SessionProvider` NO vive aquí — solo envuelve el área protegida
+ * `(dashboard)` para no forzar client-side en páginas públicas (SEO/performance).
  */
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        {children}
-        <Toaster />
-      </ThemeProvider>
-    </SessionProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      {children}
+      <Toaster />
+    </ThemeProvider>
   );
 }

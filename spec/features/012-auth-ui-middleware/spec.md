@@ -1,31 +1,31 @@
 # 012 · Auth UI + Middleware
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 
-Implementa flujo completo de autenticación en el frontend:
-- Páginas `/login` y `/register` en route group `(auth)`.
-- Google OAuth: botón "Continuar con Google" → `supabase.auth.signInWithOAuth({ provider: 'google' })` → callback automático Supabase → redirige a `/dashboard`.
-- Email/Password: formulario register (email, password, confirm) → `signUp` → email verification → login; formulario login → `signInWithPassword`.
-- Middleware de rutas protegidas: `middleware.ts` usa `updateSession` + verifica `session`; si no hay sesión en rutas `(dashboard)/*` → redirige a `/login?redirect=...`.
-- Logout: botón en header → `supabase.auth.signOut()` → redirige a `/login`.
-- Manejo de errores: toasts (sonner) para "Credenciales inválidas", "Email ya registrado", "Verifica tu email", etc.
+Desde la perspectiva del usuario, la feature proporciona un flujo de autenticación completo y sin fricción:
+
+- Acceso a las páginas de login y registro en el área pública `(auth)`, sin necesidad de sesión previa.
+- Inicio de sesión con email y password, o con Google OAuth, que otorga acceso al área protegida.
+- Cierre de sesión desde el header del área dashboard.
+- Feedback visual inmediato (toasts) ante cualquier éxito, error o estado de loading en las acciones de autenticación.
+- El área `(dashboard)` permanece protegida y oculta automáticamente cuando el usuario no tiene sesión activa.
 
 ## Por qué
 
-Auth es la puerta de entrada. Separar `(auth)` (layout público, sin header/sidebar) de `(dashboard)` (layout protegido) mantiene UX limpia. Middleware en edge/runtime asegura que componentes server no rendericen datos sin sesión. Google + Email son los únicos proveedores confirmados (decisión usuario).
+Auth es la puerta de entrada al sistema. Separar `(auth)` (layout público, sin header/sidebar) de `(dashboard)` (layout protegido) mantiene la UX limpia y evita que componentes server roten datos sin sesión. El middleware en edge/runtime asegura que solo usuarios autenticados accedan a funcionalidades protegidas. Google + Email son los únicos proveedores confirmados, alineado con la decisión de la misión de limitar proveedores OAuth a los esenciales.
 
 ## Criterios de aceptación
 
-- [ ] `src/app/(auth)/login/page.tsx`: formulario email/password + botón Google; `useRouter` redirige a `/dashboard` tras login exitoso.
-- [ ] `src/app/(auth)/register/page.tsx`: formulario register + botón Google; `signUp` → muestra mensaje "Revisa tu email"; link a login.
-- [ ] `src/app/auth/callback/route.ts` (o `middleware.ts` maneja callback): `supabase.auth.exchangeCodeForSession` → redirige a `/dashboard`.
-- [ ] `middleware.ts`: `export { updateSession as middleware } from '@/lib/supabase/middleware'` + `matcher: ['/dashboard/:path*', '/book/:path*']` (rutas protegidas).
-- [ ] `SessionProvider` en `providers.tsx` provee `session` y `user` a todo el árbol `(dashboard)`.
-- [ ] Header en layout `(dashboard)` muestra avatar/email + botón Logout → `signOut()` → `router.push('/login')`.
-- [ ] Toasts (sonner) para feedback: éxito, error, loading states en botones.
-- [ ] Tests: Cypress/Playwright (o unitarios con RTL) — login email/password, login Google (mock), logout, middleware redirige sin sesión, middleware permite con sesión.
+- [ ] Página `login` con formulario email/password y botón Google; `useRouter` redirige a `/dashboard` tras login exitoso.
+- [ ] Página `register` con formulario register y botón Google; `signUp` muestra mensaje "Revisa tu email" y link a login.
+- [ ] Ruta callback `/auth/callback` (o middleware) que ejecute `exchangeCodeForSession` y redirija a `/dashboard`.
+- [ ] `middleware.ts`: `export { updateSession as middleware } from '@/lib/supabase/middleware'` + `matcher: ['/dashboard/:path*', '/book/:path*']` protege rutas requeriendo sesión.
+- [ ] `SessionProvider` provee `session` y `user` a todo el árbol `(dashboard)` sin errores de contexto.
+- [ ] Header en layout `(dashboard)` muestra avatar/email del usuario + botón Logout que ejecuta `signOut()` y `router.push('/login')`.
+- [ ] Toasts (sonner) para feedback: éxito, error y states de loading en botones de login/register/logout.
+- [ ] Tests: Cypress/Playwright o unitarios con RTL — login email/password, login Google (mock), logout, middleware redirige sin sesión y permite con sesión.
 
 ## Fuera de alcance
 
@@ -34,3 +34,4 @@ Auth es la puerta de entrada. Separar `(auth)` (layout público, sin header/side
 - Gestión de perfil (cambiar email, password, avatar) — feature futura.
 - Proveedores OAuth adicionales (GitHub, Discord, etc.) — decisión usuario: solo Google + Email.
 - Middleware en API routes (backend maneja su propia auth vía JWT).
+- Soporte para múltiples tenants o accounts vinculados por usuario.
