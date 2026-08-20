@@ -1,6 +1,6 @@
 # 007 · Pydantic Models
 
-**Estado:** en curso
+**Estado:** hecho
 
 ## Qué hace
 

@@ -15,11 +15,12 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 9. **009 · Books CRUD API** — 6 endpoints: lookup, create, list, get, update, delete. Validación Pydantic, auth dependency (JWT → user_id), RLS via Supabase server-side
 10. **010 · Notes CRUD API** — GET `/books/{id}/notes` (paginado), POST `/books/{id}/notes` (crea + dispara vectorización background). Auth + ownership check.
 
+11. **011 · Next.js UI Scaffold** — `create-next-app` TS + Tailwind + shadcn/ui; Supabase client (browser + server); SessionProvider; layout base; route groups `(auth)` y `(dashboard)`.
+
 ## Siguiente 🔜
 
 _Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez._
 
-5. **011 · Next.js UI Scaffold** — `create-next-app` TS + Tailwind + shadcn/ui; Supabase client (browser + server); SessionProvider; layout base.
 7. **012 · Auth UI + Middleware** — `/login`, `/register`; Google OAuth flow; protected routes middleware (redirige a login); logout.
 8. **013 · Dashboard Library Grid** — Grid responsive cards (portada, título, autor, status badge, rating stars); filtros: status tabs, rating select, búsqueda texto debounced 300ms; skeleton loading; empty state.
 9. **014 · Add Book Modal + ISBN** — Modal input ISBN → `GET /api/v1/books/lookup?isbn=` → preview metadatos → "Guardar" → `POST /api/v1/books` → refresh grid.

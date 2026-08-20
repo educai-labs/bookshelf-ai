@@ -1,6 +1,6 @@
 # 011 · Next.js UI Scaffold
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

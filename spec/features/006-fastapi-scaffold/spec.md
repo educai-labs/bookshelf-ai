@@ -1,6 +1,6 @@
 # 006 · FastAPI Scaffold
 
-**Estado:** `en curso`
+**Estado:** `hecho`
 
 ## Qué hace
 
