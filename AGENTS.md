@@ -1,4 +1,5 @@
 # AGENTS.md — Flujo Spec-Driven Development (SDD)
+**Última spec creada/actualizada**: `spec/features/008-isbn-lookup-service/spec.md` (2026-08-19)
 
 > Esta plantilla documenta el flujo de trabajo obligatorio para el proyecto. Copia este archivo a la raíz de tu proyecto como `AGENTS.md` y adáptalo si es necesario.
 

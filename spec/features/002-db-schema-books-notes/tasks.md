@@ -105,4 +105,4 @@ estado: "en curso"
     - Confirmar que los enum y triggers están activos.
 
 ---
-**Estado: `en curso`** — Implementación completada: 12/12 tareas `[x]`. Migración 002 aplicada y validada en entorno remoto (proyecto linkado `xtjvwlmwdjpsblqrghno`). Pendiente revisión del revisor.
+**Estado: `hecho`** — Implementación completada: 12/12 tareas `[x]`. Migración 002 aplicada y validada en entorno remoto (proyecto linkado `xtjvwlmwdjpsblqrghno`). Pendiente revisión del revisor.

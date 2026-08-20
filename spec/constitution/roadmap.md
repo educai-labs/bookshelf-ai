@@ -4,28 +4,28 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 
 ## Hecho ✅
 
-- 001 · Supabase Project Setup — **Hecho** 2026-08-17
-- 002 · DB Schema Books & Notes — **Hecho** 2026-08-17
-- 003 · pgvector + HNSW Indexes — **Hecho** 2026-08-17
-- 004 · RLS Policies — `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`; policies `auth.uid() = user_id` en `books` y `book_notes` (ALL).
-- 005 · RPC match_book_notes — **Hecho** 2026-08-17
-- 006 · FastAPI Scaffold — **Hecho** 2026-08-18
+1. **001 · Supabase Project Setup** — Setup Supabase project
+2. **002 · DB Schema Books & Notes** — DB schema for books and notes
+3. **003 · pgvector + HNSW Indexes** — pgvector and HNSW indexes
+4. **004 · RLS Policies** — RLS policies for books and book_notes tables
+5. **005 · RPC match_book_notes** — RPC for matching book notes
+6. **006 · FastAPI Scaffold** — FastAPI scaffold
+7. **007 · Pydantic Models** — Pydantic models
+8. **008 · ISBN Lookup Service** — ISBN Lookup Service with httpx.AsyncClient; Open Library primary, Google Books fallback; normalizes to `BookMetadata`.
+9. **009 · Books CRUD API** — 6 endpoints: lookup, create, list, get, update, delete. Validación Pydantic, auth dependency (JWT → user_id), RLS via Supabase server-side
+10. **010 · Notes CRUD API** — GET `/books/{id}/notes` (paginado), POST `/books/{id}/notes` (crea + dispara vectorización background). Auth + ownership check.
 
 ## Siguiente 🔜
 
 _Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez._
 
-5. **007 · Pydantic Models** — Modelos request/response: BookCreate/Read/Update, BookMetadata, NoteCreate/Read, ChatRequest, ChatResponse, RecommendationResponse.
-6. **008 · ISBN Lookup Service** — `ISBNLookupService` async con `httpx.AsyncClient`; Open Library primario, Google Books fallback; normaliza a `BookMetadata`.
-7. **009 · Books CRUD API** — 6 endpoints: lookup, create, list, get, update, delete. Validación Pydantic, auth dependency (JWT → user_id), RLS via Supabase server-side.
-8. **010 · Notes CRUD API** — GET `/books/{id}/notes` (paginado), POST `/books/{id}/notes` (crea + dispara vectorización background). Auth + ownership check.
-9. **011 · Next.js UI Scaffold** — `create-next-app` TS + Tailwind + shadcn/ui; Supabase client (browser + server); SessionProvider; layout base.
-10. **012 · Auth UI + Middleware** — `/login`, `/register`; Google OAuth flow; protected routes middleware (redirige a login); logout.
-11. **013 · Dashboard Library Grid** — Grid responsive cards (portada, título, autor, status badge, rating stars); filtros: status tabs, rating select, búsqueda texto debounced 300ms; skeleton loading; empty state.
-12. **014 · Add Book Modal + ISBN** — Modal input ISBN → `GET /api/v1/books/lookup?isbn=` → preview metadatos → "Guardar" → `POST /api/v1/books` → refresh grid.
-13. **015 · Book Detail / Reading Sheet** — `/book/[id]`: portada grande, metadatos, selector status, rating 1-5, editor Markdown (textarea + preview), lista notas con timestamp. "Guardar nota" → POST notes.
-14. **016 · Note Vectorization Pipeline** — Al crear nota: chunking ~500 tokens / 50 overlap (tiktoken); batch embeddings `text-embedding-004`; upsert `book_notes` con `chunk_index` + `embedding`. Background task.
-15. **017 · Dual AI Chat SSE** — POST `/api/v1/ai/chat` streaming SSE. Modo `book_id`: inyecta libro + notas completas → `gemini-2.0-flash`. Modo sin `book_id`: embedding query → RPC `match_book_notes` (threshold 0.7, count 10) → stream. Frontend `EventSource` / fetch+ReadableStream.
+5. **011 · Next.js UI Scaffold** — `create-next-app` TS + Tailwind + shadcn/ui; Supabase client (browser + server); SessionProvider; layout base.
+7. **012 · Auth UI + Middleware** — `/login`, `/register`; Google OAuth flow; protected routes middleware (redirige a login); logout.
+8. **013 · Dashboard Library Grid** — Grid responsive cards (portada, título, autor, status badge, rating stars); filtros: status tabs, rating select, búsqueda texto debounced 300ms; skeleton loading; empty state.
+9. **014 · Add Book Modal + ISBN** — Modal input ISBN → `GET /api/v1/books/lookup?isbn=` → preview metadatos → "Guardar" → `POST /api/v1/books` → refresh grid.
+10. **015 · Book Detail / Reading Sheet** — `/book/[id]`: portada grande, metadatos, selector status, rating 1-5, editor Markdown (textarea + preview), lista notas con timestamp. "Guardar nota" → POST notes.
+11. **016 · Note Vectorization Pipeline** — Al crear nota: chunking ~500 tokens / 50 overlap (tiktoken); batch embeddings `text-embedding-004`; upsert `book_notes` con `chunk_index` + `embedding`. Background task.
+12. **017 · Dual AI Chat SSE** — POST `/api/v1/ai/chat` streaming SSE. Modo `book_id`: inyecta libro + notas completas → `gemini-2.0-flash`. Modo sin `book_id`: embedding query → RPC `match_book_notes` (threshold 0.7, count 10) → stream. Frontend `EventSource` / fetch+ReadableStream.
 
 ## Backlog / ideas 💡
 

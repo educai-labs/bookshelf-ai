@@ -48,5 +48,5 @@
 - [ ] Ejecutar build backend (Docker): `cd apps/api && docker build -t bookshelf-api .` — **NO EJECUTABLE**: el runtime Docker no está instalado en este entorno (`docker: command not found`, sin podman/nerdctl). Además el `Dockerfile` de `apps/api` corresponde a la feature 006 (FastAPI Scaffold). Requiere entorno con Docker o decisión del orquestador.
 
 ### Cierre y documentación
-- [ ] Mover la feature a "Hecho" en `../../constitution/roadmap.md` — **corresponde al agente `roadmap`** tras la aprobación del revisor (AGENTS.md: el implementador no ejecuta este paso; la feature debe validarse primero).
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md` — **corresponde al agente `roadmap`** tras la aprobación del revisor (AGENTS.md: el implementador no ejecuta este paso; la feature debe validarse primero).
 - [x] Actualizar documentación interna si procede: `spec.md` actualizado (Estado: `propuesta` → `en curso`). `plan.md` y `spec.md` reflejan el estado final; desviación de nombre de migración documentada en este checklist.

@@ -1,40 +1,31 @@
 # 008 · ISBN Lookup Service
 
-**Estado:** propuesta
+**Estado:** en curso
 
 ## Qué hace
 
-Implementa `ISBNLookupService` en `apps/api/app/services/isbn_lookup.py` que resuelve metadatos de libro dado un ISBN-13.
-
-Flujo:
-1. Normaliza ISBN (quita guiones/espacios, valida 13 dígitos).
-2. Intenta **Open Library API** (`https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&format=json&jscmd=data`) — sin API key, rate limit ~100 req/min.
-3. Si Open Library falla (timeout, 404, datos incompletos: sin título/autores/portada), cae a **Google Books API** (`https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}`) — requiere `GOOGLE_BOOKS_API_KEY` opcional para cuota mayor.
-4. Normaliza respuesta a `BookMetadata` (campos mapeados: title, authors[], cover_url (thumbnail L), page_count, publisher, published_date, description).
-5. Cache en memoria (TTL 1 hora, `cachetools.TTLCache`) para evitar re-lookups.
-6. Manejo de errores: timeout 5s (httpx), retry 2x con backoff exponencial, logging estructurado.
-
-Endpoint expuesto: `GET /api/v1/books/lookup?isbn=978...` → `BookMetadata` (feature 009).
+Permite a los usuarios buscar y obtener metadatos de un libro utilizando su ISBN-13. El usuario ingresa un ISBN y el sistema devuelve la información del libro incluyendo título, autores, portada, número de páginas, editorial y fecha de publicación. Este servicio es el punto de entrada para el alta de libros, evitando la entrada manual de datos y asegurando consistencia en los metadatos.
 
 ## Por qué
 
-ISBN es la llave maestra de alta de libros (decisión confirmada). Open Library es gratis y sin key; Google Books es fallback robusto. Cache evita rate limits y acelera UX (lookup instantáneo en reintentos). Normalización a `BookMetadata` desacopla consumidores de APIs externas.
+ISBN es la llave maestra para el alta de libros (decisión de la misión). Usar APIs externas (Open Library / Google Books) garantiza metadatos precis y consistentes sin depender de la precisión del usuario. El servicio está diseñado para ser el origen único de metadatos que luego serán usados por el catálogo, notas y funcionalidades de IA. El cacheo evita rate limits en las APIs externas y acelera la experiencia al repetir búsquedas del mismo libro.
 
 ## Criterios de aceptación
 
-- [ ] Clase `ISBNLookupService` con método `async lookup(isbn: str) -> BookMetadata`.
-- [ ] Normalización ISBN: `"978-84-9759-231-1"` → `"9788497592311"`; rechaza si no 13 dígitos.
-- [ ] Open Library primario: parsea `title`, `authors[].name`, `cover.large/medium`, `number_of_pages`, `publishers[0].name`, `publish_date`, `description.value/description`.
-- [ ] Fallback Google Books: parsea `volumeInfo.title`, `authors[]`, `imageLinks.thumbnail` (reemplaza `zoom=1` → `zoom=4` para alta res), `pageCount`, `publisher`, `publishedDate`, `description`.
-- [ ] Cache `TTLCache(maxsize=1000, ttl=3600)` — hit en segundo llamado < 5ms.
-- [ ] Timeout `httpx.AsyncClient(timeout=5.0)`; retry `httpx.Retry(total=2, backoff_factor=0.5)`.
-- [ ] Errores: `ISBNNotFoundError` (404 ambas APIs), `ISBNLookupError` (red/timeout), `InvalidISBNError` (formato).
-- [ ] Tests: mock `httpx` responses (Open Library success, OL fail → GB success, ambas fail, cache hit).
-- [ ] Endpoint `GET /api/v1/books/lookup` (feature 009) usa este servicio.
+- [ ] Servicio responde con metadatos completos para ISBN-13 válidos en menos de 3 segundos (promedio).
+- [ ] Open Library es la fuente primaria; Google Books es fallback automático cuando Open Library no retorna datos completos (sin título, sin autores, sin portada).
+- [ ] El servicio normaliza automáticamente el ISBN eliminiendo guiones y espacios, validando que tenga exactamente 13 dígitos; si no es válido, lanza `InvalidISBNError`.
+- [ ] Cuando ambas APIs fallan, lanza `ISBNNotFoundError` con mensaje descriptivo.
+- [ ] Timeout de 5 segundos por petición HTTP; máximo 2 reintentos con backoff exponencial ante timeouts.
+- [ ] Cache en memoria con TTL de 1 hora: segundo llamado idéntico retorna al instante (< 5ms).
+- [ ] Los metadatos mapeados incluyen: title, authors (array de strings), cover_url (URL de miniatura), page_count, publisher, published_date, description.
+- [ ] El endpoint `GET /api/v1/books/lookup?isbn=` (feature 009) integra y usa este servicio correctamente.
+- [ ] Tests unitarios mockean respuestas de httpx: éxito Open Library, fallback Google Books, error en ambas, hit de cache.
 
 ## Fuera de alcance
 
-- Endpoint API (feature 009).
-- Persistencia de cache (Redis) — en memoria suficiente para MVP.
-- Búsqueda por título/autor (no ISBN) — feature futura.
-- Rate limiting distribuido (multi-instancia) — feature 020.
+- Endpoint API completo (feature 009: creación de libro con metadatos lookup).
+- Persistencia de cache a Redis o disco — en memoria suficiente para MVP.
+- Búsqueda por título, autor o palabra clave — feature futura (roadmap 018+).
+- Rate limiting distribuido o por instancia — feature 020.
+- Validación de ISBN-10 a ISBN-13 conversión — no requerida en esta historia.

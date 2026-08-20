@@ -1,6 +1,6 @@
 # 010 · Notes CRUD API
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

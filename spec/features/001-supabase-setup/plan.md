@@ -1,6 +1,6 @@
 ---
 feature: "001-supabase-setup"
-status: "propuesta"
+status: "hecha"
 created: "2026-08-15"
 ---
 

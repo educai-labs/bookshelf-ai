@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # --- Google Gemini ---
     gemini_api_key: str = ""
 
+    # --- ISBN Lookup (feature 008) ---
+    # Google Books API key opcional: sin key = cuota de 1000 req/día; con key
+    # sube a 10000 req/día (Open Library no requiere key).
+    google_books_api_key: str = ""
+
     # --- Logging: INFO (JSON prod) | DEBUG (pretty console dev) ---
     log_level: str = "INFO"
 

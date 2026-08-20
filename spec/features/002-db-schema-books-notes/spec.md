@@ -1,6 +1,6 @@
 # 002 · DB Schema Books & Notes
 
-**Estado:** en curso
+**Estado:** hecho
 
 ## Qué hace
 

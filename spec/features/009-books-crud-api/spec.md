@@ -1,6 +1,6 @@
 # 009 · Books CRUD API
 
-**Estado:** propuesta
+**Estado:** en curso
 
 ## Qué hace
 

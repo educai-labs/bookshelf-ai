@@ -1,6 +1,6 @@
 # 004 · RLS Policies
 
-**Estado:** en curso
+**Estado:** hecho
 
 ## Qué hace
 
