@@ -14,27 +14,26 @@ Validaciones (convención `tech-stack.md`): `isbn13` regex `^\d{13}$`,
 `rating` 1-5, `status` enum `book_status`, `page` ≥ 1, `page_size` 1-100.
 """
 
-import re
 from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.schemas.enums import BookStatus
-
-ISBN13_PATTERN = re.compile(r"^\d{13}$")
+from app.models.enums import BookStatus
+from app.models.isbn import InvalidISBNError, normalizar_isbn
 
 
 def normalizar_isbn13(value: str) -> str:
     """Normaliza un ISBN-13: quita guiones/espacios y valida 13 dígitos.
 
     Lanza `ValueError` (→ 422 `VALIDATION_ERROR` en Pydantic) si tras la
-    normalización no son exactamente 13 dígitos.
+    normalización no son exactamente 13 dígitos. Reutiliza `normalizar_isbn`
+    del dominio ISBN (que lanza `InvalidISBNError`).
     """
-    normalized = re.sub(r"[\s-]", "", value).strip()
-    if not ISBN13_PATTERN.fullmatch(normalized):
-        raise ValueError("El ISBN debe ser un código ISBN-13 de 13 dígitos")
-    return normalized
+    try:
+        return normalizar_isbn(value)
+    except InvalidISBNError:
+        raise ValueError("El ISBN debe ser un código ISBN-13 de 13 dígitos") from None
 
 
 class BookMetadata(BaseModel):
@@ -138,3 +137,33 @@ class BookListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+def to_book_read(row: dict, notes_count: int | None = None) -> BookRead:
+    """Convierte una fila de `books` (con `book_notes(count)` opcional) a `BookRead`.
+
+    `notes_count` se lee del agregado `book_notes(count)` salvo que se pase
+    explícitamente (p. ej. 0 en el alta, cuando aún no hay notas).
+    """
+    if notes_count is None:
+        notas = row.get("book_notes") or []
+        notes_count = notas[0]["count"] if notas else 0
+    return BookRead(
+        id=row["id"],
+        user_id=row["user_id"],
+        isbn13=str(row.get("isbn13") or "").strip(),
+        title=row["title"],
+        authors=list(row.get("authors") or []),
+        cover_url=row.get("cover_url"),
+        page_count=row.get("page_count"),
+        publisher=row.get("publisher"),
+        published_date=row.get("published_date"),
+        description=row.get("description"),
+        status=row["status"],
+        rating=row.get("rating"),
+        started_at=row.get("started_at"),
+        finished_at=row.get("finished_at"),
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+        notes_count=notes_count,
+    )

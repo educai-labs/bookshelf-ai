@@ -32,9 +32,16 @@ from app.core.errors import (
     raise_http_exception,
 )
 from app.core.security import get_current_user
-from app.models.books import BookCreate, BookListResponse, BookMetadata, BookRead, BookUpdate
-from app.models.isbn import InvalidISBNError, ISBNLookupResponse, ISBNNotFoundError
-from app.schemas.enums import BookStatus
+from app.models.books import (
+    BookCreate,
+    BookListResponse,
+    BookMetadata,
+    BookRead,
+    BookUpdate,
+    to_book_read,
+)
+from app.models.enums import BookStatus
+from app.models.isbn import ISBNLookupResponse, ISBNNotFoundError
 from app.services.isbn_lookup import ISBNLookupService, get_lookup_service
 
 router = APIRouter(prefix="/books", tags=["books"])
@@ -62,8 +69,6 @@ async def lookup_book(
     """Delega en `ISBNLookupService.buscar()` y devuelve metadatos + `isbn13`."""
     try:
         resultado: ISBNLookupResponse = await service.buscar(isbn)
-    except InvalidISBNError as exc:
-        raise_http_exception(exc.code, exc.message, status_code=422)
     except ISBNNotFoundError as exc:
         raise_http_exception(exc.code, exc.message, status_code=404)
     except (httpx.TimeoutException, httpx.NetworkError):
@@ -135,7 +140,7 @@ async def create_book(
     except APIError as exc:
         map_supabase_error(exc)
 
-    return _to_book_read(resp.data[0], notes_count=0)
+    return to_book_read(resp.data[0], notes_count=0)
 
 
 # ---------------------------------------------------------------------------
@@ -189,7 +194,7 @@ async def list_books(
     total_pages = math.ceil(total / page_size) if total else 0
 
     return BookListResponse(
-        items=[_to_book_read(row) for row in data],
+        items=[to_book_read(row) for row in data],
         total=total,
         page=page,
         page_size=page_size,
@@ -319,7 +324,7 @@ def _fetch_book(supabase: Client, user_id: str, book_id: UUID) -> BookRead | Non
         map_supabase_error(exc)
     if resp is None:  # defensivo: single() sin filas sin error
         return None
-    return _to_book_read(resp.data)
+    return to_book_read(resp.data)
 
 
 def _ids_que_coinciden_con_q(base, user_id: str, q: str) -> list[str]:
@@ -353,32 +358,6 @@ def _pagina_vacia(page: int, page_size: int) -> BookListResponse:
         page=page,
         page_size=page_size,
         total_pages=0,
-    )
-
-
-def _to_book_read(row: dict, notes_count: int | None = None) -> BookRead:
-    """Convierte una fila de Supabase (con `book_notes(count)` opcional) a `BookRead`."""
-    if notes_count is None:
-        notas = row.get("book_notes") or []
-        notes_count = notas[0]["count"] if notas else 0
-    return BookRead(
-        id=row["id"],
-        user_id=row["user_id"],
-        isbn13=str(row.get("isbn13") or "").strip(),
-        title=row["title"],
-        authors=list(row.get("authors") or []),
-        cover_url=row.get("cover_url"),
-        page_count=row.get("page_count"),
-        publisher=row.get("publisher"),
-        published_date=row.get("published_date"),
-        description=row.get("description"),
-        status=row["status"],
-        rating=row.get("rating"),
-        started_at=row.get("started_at"),
-        finished_at=row.get("finished_at"),
-        created_at=row["created_at"],
-        updated_at=row["updated_at"],
-        notes_count=notes_count,
     )
 
 

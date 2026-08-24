@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import { DashboardHeader } from "./DashboardHeader";
@@ -37,12 +38,26 @@ vi.mock("sonner", () => ({
 
 import { toast } from "sonner";
 
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <SessionProvider>{children}</SessionProvider>
+      </QueryClientProvider>
+    );
+  };
+}
+
 function renderWithSession() {
-  return render(
-    <SessionProvider>
-      <DashboardHeader />
-    </SessionProvider>,
-  );
+  const Wrapper = createWrapper();
+  return render(<DashboardHeader />, { wrapper: Wrapper });
 }
 
 describe("DashboardHeader", () => {

@@ -20,6 +20,12 @@ coverage/
 *.tsbuildinfo
 npm-debug.log*
 
+# --- Cypress (artefactos E2E) ---
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+cypress/.cache/
+
 # --- Python ---
 __pycache__/
 *.py[cod]

@@ -1,14 +1,14 @@
-"""Endpoints REST de notas (feature 010).
+"""Endpoints REST de notas (feature 010 / 015).
 
 Dos endpoints bajo `/api/v1/books/{book_id}/notes`, ambos autenticados vía
 `Depends(get_current_user)` + ownership check (`get_book_ownership`, 404 si el
 libro no existe o es de otro usuario):
 
 - `POST ""`: crea una nota. Valida `NoteCreate` (1-50000 chars), renderiza
-  `content_html = markdown2.markdown(content)` y lo sanitiza con
-  `bleach.clean()` (anti-XSS), inserta en `book_notes` con `chunk_index=0` y
-  `embedding` placeholder (vector zeros 768), y dispara la vectorización real
-  en background (`BackgroundTasks.add_task(vectorize_note, ...)`, feature 016).
+  `content_html` via `render_markdown_to_html` (markdown2 + bleach), inserta
+  en `book_notes` con `chunk_index=0` y `embedding` placeholder (vector zeros 768),
+  y dispara la vectorización real en background
+  (`BackgroundTasks.add_task(vectorize_note, ...)`, feature 016).
   Retorna 201 con `NoteRead` sin bloquear la respuesta.
 - `GET ""`: lista las notas del libro con paginación `.range()`, orden
   `created_at DESC`; filtra `chunk_index = 0` (solo notas "padres") salvo
@@ -22,8 +22,6 @@ validación Pydantic, 500 DB.
 from typing import Annotated
 from uuid import UUID
 
-import bleach
-import markdown2
 from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query
 from postgrest.exceptions import APIError
 from supabase import Client
@@ -34,6 +32,7 @@ from app.core.errors import map_supabase_error
 from app.core.security import get_current_user
 from app.models.books import BookRead
 from app.models.notes import NoteCreate, NoteListResponse, NoteRead
+from app.services.notes import render_markdown_to_html
 from app.services.vectorization import vectorize_note
 
 router = APIRouter(prefix="/books/{book_id}/notes", tags=["notes"])
@@ -69,7 +68,7 @@ async def create_note(
     _book: Annotated[BookRead, Depends(get_book_ownership)],
 ) -> NoteRead:
     """Crea la nota (chunk_index=0) y dispara la vectorización en background."""
-    content_html = bleach.clean(markdown2.markdown(note_in.content))
+    content_html = render_markdown_to_html(note_in.content)
     data = {
         "user_id": user_id,
         "book_id": str(book_id),

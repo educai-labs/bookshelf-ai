@@ -1,0 +1,5 @@
+# Los tests E2E de Cypress se excluyen del lint de la app: usan globals
+# `cy`/`Cypress` resueltos por los tipos de Cypress en su propio tsconfig.
+# La calidad de estos archivos se valida con `cypress run` (type-check interno).
+cypress/
+cypress.config.ts

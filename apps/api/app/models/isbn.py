@@ -1,16 +1,15 @@
-"""Modelos Pydantic del servicio de ISBN lookup (feature 008).
+"""Modelos y errores del servicio de ISBN lookup (feature 008).
 
-- `ISBNRequest`: valida el query param `isbn` del endpoint
-  `GET /api/v1/books/lookup` (normaliza guiones/espacios → 13 dígitos).
 - `ISBNLookupResponse`: metadatos normalizados de un libro, unificando los
   esquemas de Open Library y Google Books.
 - `InvalidISBNError` / `ISBNNotFoundError`: excepciones de dominio con
   `code`/`message` (convención `detail={code, message}` del tech-stack).
+- `normalizar_isbn`: normaliza y valida un ISBN-13.
 """
 
 import re
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 # ISBN-13 tal y como se almacena en DB (columna `books.isbn13`, CHECK regex).
 ISBN13_PATTERN = re.compile(r"^\d{13}$")
@@ -50,21 +49,6 @@ def normalizar_isbn(isbn: str) -> str:
     if not ISBN13_PATTERN.fullmatch(normalized):
         raise InvalidISBNError(isbn)
     return normalized
-
-
-class ISBNRequest(BaseModel):
-    """Query param del endpoint lookup: `?isbn=...`.
-
-    `isbn` se normaliza (guiones/espacios → 13 dígitos) antes de validar;
-    si no es un ISBN-13 válido se lanza `InvalidISBNError`.
-    """
-
-    isbn: str = Field(description="ISBN-13 del libro a buscar")
-
-    @field_validator("isbn", mode="before")
-    @classmethod
-    def _normalizar_y_validar(cls, value: str) -> str:
-        return normalizar_isbn(value)
 
 
 class ISBNLookupResponse(BaseModel):

@@ -16,7 +16,7 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 
-async def vectorize_note(note_id: UUID, user_id: UUID, book_id: UUID, content: str) -> None:
+async def vectorize_note(note_id: str, user_id: str, book_id: UUID, content: str) -> None:
     """Stub: loggea un warning. Feature 016 implementará el pipeline real.
 
     Args:

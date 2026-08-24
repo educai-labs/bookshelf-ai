@@ -11,3 +11,28 @@ usa [Semantic Versioning](https://semver.org/lang/es/).
 
 - **001**: Supabase Setup — extensión `pgvector` habilitada (migración `20260815185301_enable_pgvector.sql`), credenciales documentadas en `docs/supabase-setup.md`, scripts de verificación `verify:supabase`.
 - **002**: DB Schema Books & Notes — migración `002_books_notes.sql` aplicada. Tabla `books` y `book_notes` creadas con constraints, enum `book_status`, trigger `updated_at` e índices de apoyo.
+- **003**: pgvector + HNSW — migración `003_pgvector_hnsw.sql`: índice HNSW `idx_book_notes_embedding_hnsw` sobre `book_notes.embedding` (coseno, m=16, ef_construction=64).
+- **004**: RLS Policies — migración `004_rls_policies.sql`: RLS habilitado en `books` y `book_notes` con aislamiento por `auth.uid() = user_id`.
+- **005**: RPC `match_book_notes` — migración `005_rpc_match_book_notes.sql`: búsqueda semántica por coseno (`<=>`) con threshold y count.
+- **006**: FastAPI Scaffold — app `bookshelf-api` con lifespan, CORS, logging structlog, excepción handlers estructurados y Dockerfile multi-stage.
+- **007**: Pydantic Models — modelos request/response del dominio (book, note, chat, recommendation).
+- **008**: ISBN Lookup Service — Open Library primario, Google Books fallback, caché TTL 1h, reintentos.
+- **009**: Books CRUD API — 6 endpoints REST con JWT y filtros (status, rating, búsqueda título/autor).
+- **010**: Notes CRUD API — crear/listar notas, render Markdown→HTML sanitizado, vectorización en background (stub).
+- **011**: Next.js UI Scaffold — Next.js 14 + Tailwind + shadcn/ui, clientes Supabase browser/server, layout y route groups.
+- **012**: Auth UI + Middleware — login/registro, Google OAuth, rutas protegidas, logout.
+- **013**: Dashboard Library Grid — grid responsivo con filtros, búsqueda y paginación.
+- **014**: Add Book Modal + ISBN — alta por ISBN con normalización, lookup→preview→guardar y manejo de errores.
+- **015**: Book Detail / Reading Sheet — ficha completa con controles de lectura, editor de notas Markdown y chat placeholder.
+
+### Corregido
+
+- Ficha de libro (`/book/[id]`): los fetch del Server Component usaban URL relativa (`Failed to parse URL`); ahora usan `API_URL` absoluto.
+
+### Cambiado
+
+- Consolidación de modelos backend: `app/schemas/` (feature 007) eliminado; `BookStatus` movido a `app/models/enums.py` y los endpoints documentan sus modelos reales (`app/models/`).
+- Limpieza de código muerto backend (cliente HTTP sin uso, `ISBNRequest`, `app/db`, normalizadores duplicados) y frontend (tipos triplicados, `AddBookModal` huérfano, `tooltip`, `queryKeys`, validaciones vacías).
+- Calendario de fechas real (`react-day-picker`) y estilos tipográficos (`@tailwindcss/typography`).
+- Refresco de la ficha de libro tras crear nota o cambiar estado/rating (`router.refresh()`).
+- Healthcheck del Dockerfile sin `curl` (usando Python/urllib); cache del cliente JWKS; guards de skip en los tests RLS.

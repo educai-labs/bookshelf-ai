@@ -1,6 +1,6 @@
 # 015 · Book Detail / Reading Sheet
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

@@ -1,27 +1,33 @@
-"""Tests de autenticación: mock de `get_current_user` vía dependency override.
+"""Tests de autenticación: `get_current_user` vía dependency override.
 
-El endpoint protegido es un placeholder registrado sobre la app importada
-(los endpoints reales protegidos llegan en features 008-010). Aquí solo se
-verifica que `Depends(get_current_user)` funciona con override.
+Usa una app FastAPI local (no la app real) para no contaminar sus rutas.
 """
 
+import httpx
 import pytest
-from fastapi import Depends
+from fastapi import Depends, FastAPI
+from httpx import ASGITransport
 
 from app.core.security import get_current_user
-from app.main import app
 
 USER_ID = "00000000-0000-0000-0000-000000000001"
 
+app = FastAPI()
 
-# Placeholder: endpoint protegido (mismo patrón que usarán features 008-010).
-@app.get("/api/v1/secure")
-async def secure_placeholder(user_id: str = Depends(get_current_user)):
+
+@app.get("/secure")
+async def secure(user_id: str = Depends(get_current_user)):
     return {"user_id": user_id}
 
 
+@pytest.fixture
+def client():
+    transport = ASGITransport(app=app)
+    return httpx.AsyncClient(transport=transport, base_url="http://test")
+
+
 @pytest.mark.asyncio
-async def test_get_current_user_mock(api_client):
+async def test_get_current_user_mock(client):
     """Override de `get_current_user` → el endpoint devuelve el user_id mockeado."""
 
     async def fake_get_current_user() -> str:
@@ -29,7 +35,7 @@ async def test_get_current_user_mock(api_client):
 
     app.dependency_overrides[get_current_user] = fake_get_current_user
     try:
-        resp = await api_client.get("/api/v1/secure")
+        resp = await client.get("/secure")
         assert resp.status_code == 200
         assert resp.json() == {"user_id": USER_ID}
     finally:
@@ -37,9 +43,9 @@ async def test_get_current_user_mock(api_client):
 
 
 @pytest.mark.asyncio
-async def test_protected_endpoint_requires_auth(api_client):
+async def test_protected_endpoint_requires_auth(client):
     """Sin token Bearer → 401 con detail estructurado (`code`)."""
     app.dependency_overrides.clear()
-    resp = await api_client.get("/api/v1/secure")
+    resp = await client.get("/secure")
     assert resp.status_code == 401
     assert resp.json()["detail"]["code"] == "NOT_AUTHENTICATED"

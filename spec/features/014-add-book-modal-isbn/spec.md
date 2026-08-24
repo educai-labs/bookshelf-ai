@@ -1,6 +1,6 @@
 # 014 · Add Book Modal + ISBN
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

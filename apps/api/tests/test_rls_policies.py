@@ -48,6 +48,20 @@ def _load_env() -> dict[str, str]:
     return {key: os.environ.get(key, value) for key, value in env.items()}
 
 
+_REQUIRED_ENV = (
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+)
+
+_missing_env = [key for key in _REQUIRED_ENV if not _load_env().get(key)]
+
+pytestmark = pytest.mark.skipif(
+    bool(_missing_env),
+    reason=f"Integración RLS omitida: faltan variables de entorno {_missing_env}",
+)
+
+
 def _headers(
     supabase: dict[str, str], token: str | None = None, service: bool = False
 ) -> dict[str, str]:
