@@ -1,6 +1,6 @@
 # 016 · Note Vectorization Pipeline
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

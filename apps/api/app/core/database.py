@@ -53,3 +53,14 @@ def get_supabase() -> Client:
             },
         )
     return _supabase
+
+
+def get_supabase_client() -> Client | None:
+    """Cliente `service_role` (singleton) para tareas de sistema, sin `raise`.
+
+    A diferencia de `get_supabase` (dependency HTTP que lanza 503), devuelve
+    `None` si el cliente no está inicializado, para que las tareas background
+    (vectorización, feature 016) registren un error estructurado en lugar de
+    lanzar una `HTTPException` fuera de un contexto de request.
+    """
+    return _supabase

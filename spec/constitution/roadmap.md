@@ -19,12 +19,12 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 13. **013 · Dashboard Library Grid** — Implementa la vista principal `/dashboard` con grid responsivo de tarjetas de libros ("Library Grid").
 14. **014 · Add Book Modal + ISBN** — Modal de alta por ISBN (normalización, lookup → preview → guardar, errores 400/404/409/500 con toast), integrado en DashboardHeader y EmptyState.
 15. **015 · Book Detail / Reading Sheet** — ficha completa de libro + editor de notas
+16. **016 · Note Vectorization Pipeline** — Pipeline async al crear nota: chunking tiktoken ~500 tokens/50 overlap; batch embeddings `text-embedding-004`; upsert idempotente en `book_notes` con `chunk_index` + `embedding`. Background task.
 
 ## Siguiente 🔜
 
 _Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez._
 
-- **016 · Note Vectorization Pipeline** — Al crear nota: chunking ~500 tokens / 50 overlap (tiktoken); batch embeddings `text-embedding-004`; upsert `book_notes` con `chunk_index` + `embedding`. Background task.
 - **017 · Dual AI Chat SSE** — POST `/api/v1/ai/chat` streaming SSE. Modo `book_id`: inyecta libro + notas completas → `gemini-2.0-flash`. Modo sin `book_id`: embedding query → RPC `match_book_notes` (threshold 0.7, count 10) → stream. Frontend `EventSource` / fetch+ReadableStream.
 
 ## Backlog / ideas 💡

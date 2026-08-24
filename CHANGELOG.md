@@ -24,6 +24,7 @@ usa [Semantic Versioning](https://semver.org/lang/es/).
 - **013**: Dashboard Library Grid — grid responsivo con filtros, búsqueda y paginación.
 - **014**: Add Book Modal + ISBN — alta por ISBN con normalización, lookup→preview→guardar y manejo de errores.
 - **015**: Book Detail / Reading Sheet — ficha completa con controles de lectura, editor de notas Markdown y chat placeholder.
+- **016**: Note Vectorization Pipeline — pipeline asíncrono de vectorización de notas: chunking `tiktoken` (`cl100k_base`, 500 tokens / 50 overlap), embeddings batch `text-embedding-004` (768 dims) vía `google.generativeai`, y sustitución idempotente de chunks en `book_notes` (DELETE → INSERT → UPDATE) con cliente `service_role`.
 
 ### Corregido
 
