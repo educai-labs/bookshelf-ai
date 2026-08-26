@@ -1,0 +1,48 @@
+---
+estado: "hecho"
+---
+
+# 017 · Dual AI Chat SSE — Tareas
+
+- [x] Añadir `ChatRequest` y los tipos de modo `book`/`rag` en `apps/api/app/models/chat.py`.
+- [x] Documentar `GEMINI_API_KEY` en `.env.example` y `apps/api/.env.example`.
+- [x] Confirmar que la configuración existente expone `settings.gemini_api_key` y que las dependencias actuales cubren Gemini y Supabase.
+- [x] Crear helpers de servicio para validar ownership y cargar el libro y las notas propias.
+- [x] Implementar la construcción del contexto del modo `book` con título, autores y notas completas ordenadas por `chunk_index >= 0`.
+- [x] Implementar la obtención del embedding de consulta con `text-embedding-004` y `RETRIEVAL_QUERY`.
+- [x] Implementar la consulta RPC `match_book_notes` con `user_id`, threshold `0.7` y count `10`.
+- [x] Implementar la construcción del prompt RAG con el contenido y título de cada resultado.
+- [x] Implementar el iterador async de tokens usando `gemini-2.0-flash` y `generate_content_stream`.
+- [x] Ejecutar las llamadas síncronas de Gemini en un worker sin bloquear el event loop.
+- [x] Crear el endpoint autenticado `POST /api/v1/ai/chat` en `apps/api/app/api/v1/endpoints/ai.py`.
+- [x] Aplicar los defaults de modo y exigir `book_id` cuando el modo sea `book`.
+- [x] Devolver el stream con media type `text/event-stream` y serializar chunks y evento final según el contrato SSE.
+- [x] Convertir errores de validación, Gemini, Supabase y credenciales ausentes en eventos SSE `error` sin filtrar secretos.
+- [x] Mantener respuestas HTTP estructuradas para fallos ocurridos antes de iniciar el stream.
+- [x] Aplicar un timeout total de 60 segundos al stream mediante `asyncio.wait_for`.
+- [x] Cancelar workers e iteradores y cerrar recursos ante timeout, cancelación del cliente o excepción.
+- [x] Registrar `ai.router` en `apps/api/app/api/v1/router.py` conservando el prefijo global `/api/v1`.
+- [x] Añadir `marked` a `apps/web/package.json` para renderizar Markdown.
+- [x] Crear `apps/web/src/lib/api/chat.ts` con el contrato camelCase, JWT de Supabase y consumo incremental de `ReadableStream`.
+- [x] Implementar el parser SSE del cliente tolerante a datos partidos, eventos `done` y eventos `error`.
+- [x] Implementar el renderizado Markdown y sanitizar siempre el HTML con DOMPurify antes de usar `dangerouslySetInnerHTML`.
+- [x] Crear la página `apps/web/src/app/(dashboard)/chat/page.tsx` y los componentes `ChatPage`, `ChatMessage` y `ChatInput` bajo `apps/web/src/components/chat/`.
+- [x] Leer el `book_id` opcional de `searchParams` y permitir seleccionar contexto libro o RAG.
+- [x] Evitar el envío de consultas vacías y mostrar el estado progresivo, final y de error del chat.
+- [x] Hidratar el historial desde `sessionStorage["chat_history"]` y descartar de forma segura JSON inválido o historial antiguo.
+- [x] Persistir tras cada cambio los mensajes de sesión con forma `{ role, content }`.
+- [x] Verificar que `ChatButton.tsx` apunta a `/chat?book_id=...` y que la página admite ese contexto.
+- [x] Añadir tests backend con mocks de Gemini, embeddings, Supabase y autenticación.
+- [x] Probar en backend la construcción de prompts, orden de notas, ownership, defaults y separación entre modos `book` y `rag`.
+- [x] Probar en backend los argumentos del RPC, chunks SSE, evento final, errores y timeout de 60 segundos.
+- [x] Añadir tests frontend RTL/Vitest con mocks de `fetch` y `ReadableStream`.
+- [x] Probar en frontend el render progresivo, selección de modo, Markdown sanitizado, `sessionStorage`, `book_id` y eventos de error.
+- [x] Confirmar que no se modifican migraciones y que se reutiliza el RPC `match_book_notes` existente.
+- [x] Ejecutar la suite backend con `cd apps/api && pytest -v`.
+- [x] Ejecutar lint y formateo backend con `cd apps/api && ruff check . && black --check .`.
+- [x] Ejecutar los tests frontend con `cd apps/web && npm run test`.
+- [x] Ejecutar lint frontend con `cd apps/web && npm run lint`.
+- [x] Ejecutar el build frontend con `cd apps/web && npm run build`.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.

@@ -1,6 +1,6 @@
 # 017 · Dual AI Chat SSE
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

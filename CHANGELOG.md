@@ -25,6 +25,7 @@ usa [Semantic Versioning](https://semver.org/lang/es/).
 - **014**: Add Book Modal + ISBN — alta por ISBN con normalización, lookup→preview→guardar y manejo de errores.
 - **015**: Book Detail / Reading Sheet — ficha completa con controles de lectura, editor de notas Markdown y chat placeholder.
 - **016**: Note Vectorization Pipeline — pipeline asíncrono de vectorización de notas: chunking `tiktoken` (`cl100k_base`, 500 tokens / 50 overlap), embeddings batch `text-embedding-004` (768 dims) vía `google.generativeai`, y sustitución idempotente de chunks en `book_notes` (DELETE → INSERT → UPDATE) con cliente `service_role`.
+- **017**: Dual AI Chat SSE — endpoint `POST /api/v1/ai/chat` con streaming SSE (`text/event-stream`): modo `book` (contexto libro con notas completas, ownership validado) y modo `rag` (RAG global vía RPC `match_book_notes` + embedding `text-embedding-004`), `gemini-2.0-flash` aislado del event loop en worker, timeout total de 60s y errores como eventos SSE sin secretos. Frontend `/chat` con render Markdown sanitizado (`marked` + DOMPurify), consumo incremental del `ReadableStream` e historial en `sessionStorage`.
 
 ### Corregido
 
