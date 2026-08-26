@@ -21,10 +21,13 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 15. **015 · Book Detail / Reading Sheet** — ficha completa de libro + editor de notas
 16. **016 · Note Vectorization Pipeline** — Pipeline async al crear nota: chunking tiktoken ~500 tokens/50 overlap; batch embeddings `text-embedding-004`; upsert idempotente en `book_notes` con `chunk_index` + `embedding`. Background task.
 17. **017 · Dual AI Chat SSE** — POST `/api/v1/ai/chat` streaming SSE: modo libro (contexto completo → modelo configurable, default `gemini-3.5-flash`) y modo RAG (embedding → RPC `match_book_notes` threshold 0.7 count 10 → stream). Frontend `/chat` con fetch+ReadableStream, markdown sanitizado (DOMPurify) e historial en sessionStorage.
+18. **021 · Server Config** — Config centralizada del servidor (Pydantic-Settings en `apps/api/app/core/config.py`): entorno, Supabase, IA, CORS, servicios externos, logs, seguridad. Secretos nunca al frontend ni a logs; fail-fast en producción.
 
 ## Siguiente 🔜
 
 _Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez._
+
+- **022 · Client Settings** — Preferencias del cliente (tema, idioma es/en con i18n completo de la UI 011–017, lector, chat, notificaciones, privacidad, accesibilidad) en un único módulo/contexto. Persistencia localStorage/DB/sessionStorage; endpoints backend validan prefs de cuenta. Prerrequisito de 020.
 
 ## Backlog / ideas 💡
 

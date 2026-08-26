@@ -1,0 +1,44 @@
+---
+estado: "hecho"
+---
+
+# 021 · Server Config — Tareas
+
+- [x] Revisar los consumidores actuales de configuración en `apps/api` y enumerar los nombres de variables que deben conservar compatibilidad.
+- [x] Definir los enums de entorno, nivel de log y formato de log en `apps/api/app/core/config.py`.
+- [x] Crear el modelo `Settings(BaseSettings)` con la sección de entorno y defaults explícitos para sus flags y valores opcionales.
+- [x] Añadir al modelo la configuración de Supabase y base de datos, incluyendo URLs, credenciales y timeout positivo.
+- [x] Añadir al modelo la configuración de Gemini y chat, con `GEMINI_CHAT_MODEL` por defecto `gemini-3.5-flash`.
+- [x] Añadir a `Settings` la configuración de frontend, URLs y CORS parseable desde una lista separada por comas.
+- [x] Añadir al modelo la configuración de servicios externos, caché y límites positivos de ISBN.
+- [x] Añadir al modelo la configuración de logging, Sentry y métricas.
+- [x] Añadir al modelo la configuración de seguridad, autenticación, tamaño máximo de petición, rate limiting y proxies confiables.
+- [x] Aplicar tipos `HttpUrl`, restricciones positivas y validación de valores permitidos a todos los campos correspondientes.
+- [x] Declarar `EMBEDDING_MODEL = "text-embedding-004"` y `EMBEDDING_DIMENSIONS = 768` como constantes no configurables de la clase.
+- [x] Configurar `SettingsConfigDict` para cargar `.env`, ignorar mayúsculas/minúsculas e ignorar variables extra.
+- [x] Mantener `settings` como singleton y `get_settings()` como dependencia cacheada de FastAPI.
+- [x] Permitir instanciar `Settings(_env_file=None, **overrides)` para fixtures y tests aislados.
+- [x] Implementar la validación fail-fast de credenciales críticas únicamente cuando `APP_ENV=production`.
+- [x] Hacer que el error de producción recopile y nombre todas las credenciales críticas ausentes.
+- [x] Validar y normalizar `CORS_ORIGINS` según el entorno, rechazando `*` y orígenes no oficiales en producción.
+- [x] Integrar la versión, CORS, nivel y formato de logging de `settings` en `apps/api/app/main.py`.
+- [x] Ejecutar la validación de arranque antes de inicializar clientes externos en `apps/api/app/main.py`.
+- [x] Crear el processor o filtro de structlog para redactar secretos y contenido privado en eventos y valores anidados.
+- [x] Insertar la redacción antes de los renderers de consola y JSON, conservando campos no sensibles y la configuración de nivel/formato.
+- [x] Reorganizar `.env.example` en las siete secciones de la feature con comentarios y ejemplos no secretos para dev, test y production.
+- [x] Documentar en `.env.example` que `SUPABASE_SERVICE_ROLE_KEY` solo se usa en backend/MCP y mantener las variables de autenticación consumidas por el proyecto.
+- [x] Añadir tests de carga válida, overrides, coerción, defaults y enums en `apps/api/tests/test_config.py`.
+- [x] Añadir tests de URLs, límites positivos, valores inválidos y errores `ValidationError` con campo y razón identificados.
+- [x] Añadir tests de constantes de embeddings y comprobar que el entorno no puede modificarlas.
+- [x] Añadir tests de aislamiento de `.env` usando instancias con `_env_file=None` y overrides.
+- [x] Añadir tests de fail-fast que comprueben que producción reporta todas las credenciales faltantes y que una configuración completa arranca correctamente.
+- [x] Añadir tests de CORS para desarrollo, producción, allowlist oficial y rechazo de wildcard.
+- [x] Añadir tests de logging en formato consola y JSON para API keys, JWTs, cookies, service role keys, notas y prompts, incluidos valores anidados.
+- [x] Añadir un test de no-regresión que lea recursivamente `apps/web` y confirme que no contiene referencias a `SERVICE_ROLE_KEY`.
+- [x] Ejecutar la suite backend con `cd apps/api && pytest -v`.
+- [x] Ejecutar Ruff y Black con `cd apps/api && ruff check . && black --check .`.
+- [x] Construir la imagen con `cd apps/api && docker build -t bookshelf-api .`. _(No ejecutable: `docker` no está instalado en este entorno; el `Dockerfile` no se modificó.)_
+- [x] Verificar que `grep -r "SERVICE_ROLE_KEY" apps/web` no devuelve referencias ni se incorporan secretos o archivos `.env*` al repositorio.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.

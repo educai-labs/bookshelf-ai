@@ -1,8 +1,8 @@
 """Bookshelf API — FastAPI app.
 
-- `lifespan` (`asynccontextmanager`): configura logging, inicializa clientes
-  Supabase/HTTP al arranque y los cierra al apagado.
-- CORS restrictivo a `http://localhost:3000` (frontend Next.js en dev).
+- `lifespan` (`asynccontextmanager`): configura logging, valida el arranque
+  (fail-fast en producción), inicializa clientes Supabase/HTTP y los cierra.
+- CORS desde `settings.cors_origins` (en producción solo dominios oficiales).
 - Routers: `/health` (infra) + `/api/v1/*` (API versionada).
 - Exception handlers globales con `detail` estructurado `{code, message, field?}`
   (convención de errores de `tech-stack.md`).
@@ -27,9 +27,13 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Ciclo de vida: logging + clientes al arranque, cierre al apagado."""
-    configure_logging(settings.log_level)
-    logger.info("api_starting", app=app.title, version=app.version)
+    """Ciclo de vida: logging + validación + clientes al arranque, cierre al apagado."""
+    configure_logging(settings.log_level.value, settings.log_format.value)
+    # Validación de arranque fail-fast antes de inicializar clientes externos.
+    # (La construcción del singleton `settings` ya la ejecuta; esta llamada
+    # documenta el orden y permite revalidar de forma aislada en tests.)
+    settings.validate_startup()
+    logger.info("api_starting", app=app.title, version=settings.app_version)
     await init_db()
     yield
     await close_db()
@@ -39,15 +43,16 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Bookshelf API",
     description="Backend FastAPI de Bookshelf: bibliotecas personales inteligentes.",
-    version="0.1.0",
+    version=settings.app_version,
     lifespan=lifespan,
 )
 
-# CORS: solo el frontend de desarrollo Next.js (puerto 3000), con credentials
-# para cookies/JWT. En producción se ampliará vía variable de entorno.
+# CORS: orígenes desde `settings.cors_origins` (lista separada por comas en el
+# entorno; en producción solo dominios oficiales, nunca `*`), con credentials
+# para cookies/JWT.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
