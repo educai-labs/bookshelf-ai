@@ -102,7 +102,7 @@ describe("LoginForm", () => {
     expect(mocks.signInWithPassword).not.toHaveBeenCalled();
   });
 
-  it("continues with Google OAuth redirecting to /auth/callback", async () => {
+  it("continues with Google OAuth redirecting to absolute /auth/callback", async () => {
     mocks.signInWithOAuth.mockResolvedValue({ error: null });
 
     render(<LoginForm />);
@@ -113,7 +113,9 @@ describe("LoginForm", () => {
     await waitFor(() =>
       expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
         provider: "google",
-        options: { redirectTo: "/auth/callback" },
+        options: {
+          redirectTo: new URL("/auth/callback", window.location.origin).href,
+        },
       }),
     );
   });

@@ -95,11 +95,12 @@ export async function* streamChat(
       code?: string;
       message?: string;
     };
-    throw new ApiError(
-      res.status,
-      errorData.code ?? "CHAT_FAILED",
-      errorData.message ?? "No se pudo iniciar el chat",
-    );
+    const code = errorData.code ?? "CHAT_FAILED";
+    const message =
+      code === "GEMINI_KEY_MISSING"
+        ? "El chat no está configurado. Añade GEMINI_API_KEY en el servidor."
+        : (errorData.message ?? "No se pudo iniciar el chat");
+    throw new ApiError(res.status, code, message);
   }
 
   if (!res.body) {

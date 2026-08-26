@@ -168,14 +168,17 @@ describe("streamChat", () => {
     });
   });
 
-  it("lanza error ante respuesta HTTP no-ok", async () => {
+  it("lanza error amigable cuando falta GEMINI_API_KEY", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({ code: "GEMINI_KEY_MISSING", message: "sin clave" }),
+          JSON.stringify({
+            code: "GEMINI_KEY_MISSING",
+            message: "sin clave",
+          }),
           {
-            status: 500,
+            status: 503,
             headers: { "Content-Type": "application/json" },
           },
         ),
@@ -186,6 +189,6 @@ describe("streamChat", () => {
       for await (const _chunk of streamChat({ query: "hola" })) {
         // noop
       }
-    }).rejects.toThrow("sin clave");
+    }).rejects.toThrow("El chat no está configurado");
   });
 });

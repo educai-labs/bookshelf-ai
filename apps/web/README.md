@@ -15,6 +15,22 @@ Copia `.env.example` a `.env.local` y rellena los valores:
 
 > Nunca subas `.env.local` al repositorio (ver `.gitignore`).
 
+## Configurar Gemini (chat IA)
+
+El chat con libros y el modo RAG usan el modelo `gemini-2.0-flash` y embeddings
+`text-embedding-004` de Google. Requiere `GEMINI_API_KEY` en el backend
+(`apps/api/.env`):
+
+1. Crea una clave en [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. Añádela a `apps/api/.env`:
+   ```bash
+   GEMINI_API_KEY=tu-clave-aqui
+   ```
+3. Reinicia el servidor FastAPI.
+
+Sin esta clave, el endpoint `/api/v1/ai/chat` responde **503**
+(`GEMINI_KEY_MISSING`) y el frontend muestra: _"El chat no está configurado."_
+
 ## Configurar Google OAuth en Supabase
 
 1. **Google Cloud Console**: crea un proyecto y configura la pantalla de
@@ -28,7 +44,14 @@ Copia `.env.example` a `.env.local` y rellena los valores:
    - Guarda.
 3. **Supabase Dashboard → Authentication → URL Configuration**:
    - **Site URL**: `NEXT_PUBLIC_SITE_URL` (ej. `http://localhost:3000` en local).
-   - **Redirect URLs**: añade `<NEXT_PUBLIC_SITE_URL>/auth/callback`.
+   - **Redirect URLs**: añade `<NEXT_PUBLIC_SITE_URL>/auth/callback` (URL
+     absoluta; Supabase no acepta rutas relativas como `/auth/callback`).
+
+> **Nota importante:** el frontend envía a Supabase una URL absoluta
+> (`http://localhost:3000/auth/callback` en local) construida a partir de
+> `window.location.origin`. Si el dashboard no tiene exactamente esa URL en
+> Redirect URLs, GoTrue redirige al Site URL y el usuario vuelve a `/login`.
+
 4. Reinicia el servidor de desarrollo y prueba "Continuar con Google".
 
 ### Flujo de autenticación
@@ -49,3 +72,15 @@ npm run test    # Vitest (unit tests + coverage de componentes auth)
 npm run lint    # ESLint + Prettier
 npm run build   # Build de producción
 ```
+
+## Solución de problemas
+
+### Tras "Continuar con Google" vuelvo a la pantalla de login
+
+1. Comprueba en **Supabase Dashboard → Authentication → URL Configuration**
+   que Redirect URLs contiene la URL absoluta a la que envía el frontend
+   (`http://localhost:3000/auth/callback` en desarrollo).
+2. Comprueba que el proveedor **Google** está activo y que el Client ID y
+   Client Secret son correctos.
+3. Mira la URL del navegador al volver: si muestra `?error=...`, lee el
+   mensaje en la pantalla de login.

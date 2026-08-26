@@ -154,12 +154,12 @@ def test_chat_mode_book_libro_ajeno_404(client, monkeypatch):
     assert resp.json()["detail"]["code"] == "BOOK_NOT_FOUND"
 
 
-def test_chat_sin_gemini_key_500(client, monkeypatch):
+def test_chat_sin_gemini_key_503(client, monkeypatch):
     monkeypatch.setattr(settings, "gemini_api_key", "")
 
     resp = client.post("/api/v1/ai/chat", json={"query": "hola"})
 
-    assert resp.status_code == 500
+    assert resp.status_code == 503
     assert resp.json()["detail"]["code"] == "GEMINI_KEY_MISSING"
 
 

@@ -60,9 +60,10 @@ export function RegisterForm() {
   async function handleGoogleRegister() {
     setIsGoogleLoading(true);
     try {
+      const redirectTo = new URL("/auth/callback", window.location.origin).href;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: "/auth/callback" },
+        options: { redirectTo },
       });
       if (error) {
         toast.error(error.message);

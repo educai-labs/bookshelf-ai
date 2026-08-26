@@ -16,7 +16,7 @@ Contrato SSE (cada evento separado por `\n\n`):
 
 Errores **antes** de iniciar el stream se devuelven como HTTP estructurados
 (`{code, message, field?}`): 401 auth, 422 `book_id` ausente en modo `book`,
-404 libro ajeno, 500 credenciales ausentes. Los errores **durante** el stream
+404 libro ajeno, 503 credenciales ausentes. Los errores **durante** el stream
 (Gemini, Supabase, timeout de 60s) se emiten como evento SSE `error` con
 `done: true`, sin revelar secretos (la clave de Gemini nunca aparece en el
 mensaje; los detalles se registran en el log estructurado del servidor).
@@ -29,7 +29,7 @@ from typing import Annotated
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import StreamingResponse
 from google.api_core.exceptions import GoogleAPIError
 from postgrest.exceptions import APIError
@@ -93,7 +93,7 @@ async def chat(
         raise_http_exception(
             "GEMINI_KEY_MISSING",
             "GEMINI_API_KEY no configurado en el servidor",
-            status_code=500,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
     return StreamingResponse(
