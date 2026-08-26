@@ -23,8 +23,9 @@ enviar el cuerpo `ChatRequest`. La conversación permanecerá únicamente en
    `RETRIEVAL_QUERY`; invocar `supabase.rpc("match_book_notes", ...)` con el
    `user_id`, threshold `0.7` y count `10`; y construir el prompt RAG incluyendo
    contenido y título de cada resultado. Aislar las llamadas síncronas de Gemini
-   del event loop mediante un worker apropiado y exponer un iterador async de
-   tokens que use `gemini-2.0-flash` y `generate_content_stream`.
+del event loop mediante un worker apropiado y exponer un iterador async de
+    tokens que use el modelo configurado (`settings.gemini_chat_model`) y
+    `generate_content(stream=True)`.
 3. **Endpoint SSE** — Crear `apps/api/app/api/v1/endpoints/ai.py` con
    `POST /api/v1/ai/chat`, `Depends(get_current_user)` y `Depends(get_supabase)`.
    Aplicar por usuario la comprobación de ownership del libro antes de leer sus

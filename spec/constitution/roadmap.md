@@ -20,7 +20,7 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 14. **014 · Add Book Modal + ISBN** — Modal de alta por ISBN (normalización, lookup → preview → guardar, errores 400/404/409/500 con toast), integrado en DashboardHeader y EmptyState.
 15. **015 · Book Detail / Reading Sheet** — ficha completa de libro + editor de notas
 16. **016 · Note Vectorization Pipeline** — Pipeline async al crear nota: chunking tiktoken ~500 tokens/50 overlap; batch embeddings `text-embedding-004`; upsert idempotente en `book_notes` con `chunk_index` + `embedding`. Background task.
-17. **017 · Dual AI Chat SSE** — POST `/api/v1/ai/chat` streaming SSE: modo libro (contexto completo → `gemini-2.0-flash`) y modo RAG (embedding → RPC `match_book_notes` threshold 0.7 count 10 → stream). Frontend `/chat` con fetch+ReadableStream, markdown sanitizado (DOMPurify) e historial en sessionStorage.
+17. **017 · Dual AI Chat SSE** — POST `/api/v1/ai/chat` streaming SSE: modo libro (contexto completo → modelo configurable, default `gemini-3.5-flash`) y modo RAG (embedding → RPC `match_book_notes` threshold 0.7 count 10 → stream). Frontend `/chat` con fetch+ReadableStream, markdown sanitizado (DOMPurify) e historial en sessionStorage.
 
 ## Siguiente 🔜
 

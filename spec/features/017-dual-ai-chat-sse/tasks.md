@@ -12,7 +12,7 @@ estado: "hecho"
 - [x] Implementar la obtención del embedding de consulta con `text-embedding-004` y `RETRIEVAL_QUERY`.
 - [x] Implementar la consulta RPC `match_book_notes` con `user_id`, threshold `0.7` y count `10`.
 - [x] Implementar la construcción del prompt RAG con el contenido y título de cada resultado.
-- [x] Implementar el iterador async de tokens usando `gemini-2.0-flash` y `generate_content_stream`.
+- [x] Implementar el iterador async de tokens usando el modelo configurado (`settings.gemini_chat_model`) y `generate_content(stream=True)`.
 - [x] Ejecutar las llamadas síncronas de Gemini en un worker sin bloquear el event loop.
 - [x] Crear el endpoint autenticado `POST /api/v1/ai/chat` en `apps/api/app/api/v1/endpoints/ai.py`.
 - [x] Aplicar los defaults de modo y exigir `book_id` cuando el modo sea `book`.

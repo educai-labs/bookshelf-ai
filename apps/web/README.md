@@ -18,7 +18,7 @@ Copia `.env.example` a `.env.local` y rellena los valores:
 ## Configurar Gemini (chat IA)
 
 El chat con libros y el modo RAG usan un modelo Gemini configurable (default
-`gemini-2.5-flash`) y embeddings `text-embedding-004` de Google. Requiere
+`gemini-3.5-flash`) y embeddings `text-embedding-004` de Google. Requiere
 `GEMINI_API_KEY` en el backend (`apps/api/.env`):
 
 1. Crea una clave en [Google AI Studio](https://aistudio.google.com/app/apikey).
@@ -28,7 +28,7 @@ El chat con libros y el modo RAG usan un modelo Gemini configurable (default
    ```
 3. (Opcional) cambia el modelo con `GEMINI_CHAT_MODEL`:
    ```bash
-   GEMINI_CHAT_MODEL=gemini-2.5-flash
+   GEMINI_CHAT_MODEL=gemini-3.5-flash
    ```
 4. Reinicia el servidor FastAPI.
 

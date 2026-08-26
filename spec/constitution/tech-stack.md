@@ -12,7 +12,7 @@ _Cómo está construido el proyecto y las reglas que todo el código debe respet
 - **Base de datos:** PostgreSQL 16 (Supabase) + pgvector 0.7+, HNSW indexes
 - **Autenticación:** Supabase Auth (Google OAuth + Email/Password), JWT en headers
 - **IA / Embeddings:** Google Gemini API (modelo de chat configurable, default
-  `gemini-2.5-flash`; `text-embedding-004` para embeddings)
+  `gemini-3.5-flash`; `text-embedding-004` para embeddings)
 - **ISBN Lookup:** Open Library API (primario), Google Books API (fallback)
 - **Tests:** Vitest + React Testing Library (frontend), pytest + httpx (backend), pytest-asyncio
 - **Lint/Format:** ESLint + Prettier (frontend), Ruff + Black (backend)

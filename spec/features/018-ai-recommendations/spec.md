@@ -10,7 +10,7 @@ Input: `limit` (query, default 5, max 10).
 Proceso:
 1. Fetch libros del usuario (`status = 'read'` o `'reading'`) + sus notas (chunks `chunk_index=0`).
 2. Extrae: títulos, autores, ratings, temas/keywords (LLM call ligero o heurística: top entidades en notas).
-3. Construye prompt para `gemini-2.0-flash` (structured output / JSON mode): "Basado en esta biblioteca: [LISTA LIBROS + RATINGS + TEMAS], sugiere 5 libros que le gustarían. Para cada uno: título, autores, razón (1-2 frases), confidence 0-1. Responde SOLO JSON válido."
+3. Construye prompt para el modelo de chat configurable (default `gemini-3.5-flash`, structured output / JSON mode): "Basado en esta biblioteca: [LISTA LIBROS + RATINGS + TEMAS], sugiere 5 libros que le gustarían. Para cada uno: título, autores, razón (1-2 frases), confidence 0-1. Responde SOLO JSON válido."
 4. Parse JSON → `RecommendationResponse { recommendations: RecommendationItem[] }`.
 
 Output: array de `{ title, authors[], reason, confidence }`.

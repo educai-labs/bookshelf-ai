@@ -31,7 +31,7 @@ usa [Semantic Versioning](https://semver.org/lang/es/).
 
 - Ficha de libro (`/book/[id]`): los fetch del Server Component usaban URL relativa (`Failed to parse URL`); ahora usan `API_URL` absoluto.
 - Login con Google: el `redirectTo` ahora es una URL absoluta (`window.location.origin`) para que coincida con la allowlist de Redirect URLs de Supabase y no devuelva al Site URL.
-- Chat IA: el modelo `gemini-2.0-flash` fue retirado por Google en junio de 2026; ahora se usa `gemini-2.5-flash` por defecto y es configurable vía `GEMINI_CHAT_MODEL` en `apps/api/.env`.
+- Chat IA: el modelo `gemini-2.0-flash` fue retirado por Google en junio de 2026. El modelo de chat es ahora configurable vía `GEMINI_CHAT_MODEL` en `apps/api/.env` (default `gemini-3.5-flash`).
 
 ### Cambiado
 
