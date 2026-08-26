@@ -7,7 +7,7 @@ Cubren (spec/plan 017):
 - Orden y filtro de notas (`chunk_index >= 0`, orden ascendente).
 - Embedding de consulta (`text-embedding-004`, `RETRIEVAL_QUERY`).
 - Argumentos del RPC `match_book_notes` (user_id, threshold 0.7, count 10).
-- Streaming de tokens de `gemini-2.0-flash` y propagación de errores.
+- Streaming de tokens del modelo configurado (`settings.gemini_chat_model`) y propagación de errores.
 
 Mocks: `genai.GenerativeModel`, `genai.embed_content`, `genai.configure` y un
 cliente Supabase falso con estado en memoria.

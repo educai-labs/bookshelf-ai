@@ -1,7 +1,9 @@
 """Servicio de chat IA (feature 017).
 
 Prepara el contexto según el modo solicitado (`book` o `rag`) y expone un
-iterador async de tokens de Gemini (`gemini-2.0-flash`). La llamada síncrona de
+iterador async de tokens de Gemini. El modelo se lee de
+`settings.gemini_chat_model` (default `gemini-2.5-flash`, reemplazo de
+`gemini-2.0-flash` retirado en junio de 2026). La llamada síncrona de
 `google-generativeai` se aísla del event loop en un worker (`asyncio.to_thread`)
 y los tokens se puentean al consumidor a través de una `asyncio.Queue`, de modo
 que el streaming es progresivo sin bloquear otras peticiones.
@@ -15,7 +17,7 @@ Helpers separados (testables de forma aislada, decisión del plan):
 - `embed_query`: embedding de la consulta (`text-embedding-004`, `RETRIEVAL_QUERY`).
 - `match_notes`: RPC `match_book_notes` (threshold 0.7, count 10, filtrado por usuario).
 - `build_rag_prompt`: prompt RAG con contenido y título de cada fragmento.
-- `stream_chat_tokens`: iterador async de tokens de `gemini-2.0-flash`.
+- `stream_chat_tokens`: iterador async de tokens del modelo configurado.
 """
 
 import asyncio
@@ -31,8 +33,9 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 # --- Parámetros fijos (límites duros de `tech-stack.md`) --------------------
-# Chat fijo a `gemini-2.0-flash` y embedding fijo a `text-embedding-004` (768 dims).
-CHAT_MODEL = "gemini-2.0-flash"
+# Modelo de chat configurable via `settings.gemini_chat_model` (default
+# `gemini-2.5-flash`, reemplazo de `gemini-2.0-flash` retirado en jun/2026);
+# embedding fijo a `text-embedding-004` (768 dims).
 EMBEDDING_MODEL = "models/text-embedding-004"
 EMBEDDING_TASK_TYPE = "RETRIEVAL_QUERY"
 MATCH_THRESHOLD = 0.7
@@ -187,8 +190,9 @@ def _chunk_text(chunk) -> str:
 
 
 async def stream_chat_tokens(prompt: str) -> AsyncIterator[str]:
-    """Itera los tokens de `gemini-2.0-flash` sin bloquear el event loop.
+    """Itera los tokens del modelo de chat configurado sin bloquear el event loop.
 
+    El modelo se lee de `settings.gemini_chat_model` (default `gemini-2.5-flash`).
     La llamada síncrona `generate_content(stream=True)` se ejecuta en un worker
     (`asyncio.to_thread`) y cada token se encola en una `asyncio.Queue` que este
     generador drena progresivamente. Cualquier error del worker se propaga al
@@ -206,7 +210,7 @@ async def stream_chat_tokens(prompt: str) -> AsyncIterator[str]:
 
     def _worker() -> None:
         try:
-            model = genai.GenerativeModel(CHAT_MODEL)
+            model = genai.GenerativeModel(settings.gemini_chat_model)
             response = model.generate_content(prompt, stream=True)
             for chunk in response:
                 text = _chunk_text(chunk)

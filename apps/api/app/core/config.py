@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     # --- Google Gemini ---
     gemini_api_key: str = ""
+    gemini_chat_model: str = "gemini-2.5-flash"
 
     # --- ISBN Lookup (feature 008) ---
     # Google Books API key opcional: sin key = cuota de 1000 req/día; con key
