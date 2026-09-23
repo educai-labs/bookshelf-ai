@@ -57,8 +57,10 @@ router = APIRouter(prefix="/books", tags=["books"])
     response_model=BookMetadata,
     summary="Buscar libro por ISBN-13",
     description=(
-        "Metadatos normalizados de un libro a partir de su ISBN-13 (Open Library "
-        "primario, Google Books fallback, caché 1h). No persiste el libro."
+        "Metadatos normalizados de un libro a partir de su ISBN-13. Orden de "
+        "fuentes: Open Library `/api/books` (primario), Open Library "
+        "`search.json` (fallback intermedio) y Google Books (último recurso), "
+        "con caché de 1 h. No persiste el libro."
     ),
 )
 async def lookup_book(
@@ -92,8 +94,10 @@ async def lookup_book(
     summary="Crear libro desde ISBN",
     description=(
         "Busca los metadatos del ISBN internamente (`ISBNLookupService`) y crea "
-        "el libro en `books` con el `user_id` del JWT. 409 si el ISBN ya está "
-        "registrado para este usuario."
+        "el libro en `books` con el `user_id` del JWT. Las fuentes de metadatos "
+        "se consultan en orden: Open Library `/api/books`, Open Library "
+        "`search.json` (fallback intermedio) y Google Books (último recurso). "
+        "409 si el ISBN ya está registrado para este usuario."
     ),
 )
 async def create_book(

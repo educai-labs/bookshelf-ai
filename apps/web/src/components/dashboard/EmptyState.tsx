@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { AddBookModal } from "@/components/books/AddBookModal";
+import { useTranslation } from "@/lib/i18n";
 
 /** Ilustración SVG inline del estado vacío. */
 function LibraryEmptyIllustration() {
@@ -47,17 +48,20 @@ function LibraryEmptyIllustration() {
  * "Tu biblioteca está vacía" + botón que abre el modal de alta (feature 014).
  */
 export function EmptyState() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       <LibraryEmptyIllustration />
       <div className="space-y-1">
-        <p className="text-lg font-medium">Tu biblioteca está vacía</p>
+        <p className="text-lg font-medium">{t("dashboard.empty.title")}</p>
         <p className="text-sm text-muted-foreground">
-          Añade tu primer libro para empezar a organizar tu lectura.
+          {t("dashboard.empty.subtitle")}
         </p>
       </div>
       <AddBookModal>
-        <Button data-testid="add-first-book">Añadir tu primer libro</Button>
+        <Button data-testid="add-first-book">
+          {t("dashboard.empty.addFirst")}
+        </Button>
       </AddBookModal>
     </div>
   );

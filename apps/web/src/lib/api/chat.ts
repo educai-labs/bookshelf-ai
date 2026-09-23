@@ -17,6 +17,10 @@ export interface ChatRequestPayload {
   query: string;
   bookId?: string;
   mode?: ChatMode;
+  /** Idioma de la interfaz (feature 022) para adaptar la respuesta. */
+  language?: "es" | "en";
+  /** Incluir las notas del usuario en el contexto (feature 022). */
+  useNotes?: boolean;
 }
 
 /** Evento SSE parseado del stream (`chunk` | `error` + `done`). */
@@ -42,6 +46,8 @@ function toWire(payload: ChatRequestPayload): Record<string, unknown> {
     query: payload.query,
     book_id: payload.bookId,
     mode: payload.mode,
+    language: payload.language,
+    use_notes: payload.useNotes,
   };
 }
 
@@ -95,20 +101,14 @@ export async function* streamChat(
       code?: string;
       message?: string;
     };
+    // El código viaja intacto; la UI traduce por código vía i18n (sin literales
+    // en español hardcodeados aquí). El mensaje es técnico (fallback).
     const code = errorData.code ?? "CHAT_FAILED";
-    const message =
-      code === "GEMINI_KEY_MISSING"
-        ? "El chat no está configurado. Añade GEMINI_API_KEY en el servidor."
-        : (errorData.message ?? "No se pudo iniciar el chat");
-    throw new ApiError(res.status, code, message);
+    throw new ApiError(res.status, code, errorData.message ?? code);
   }
 
   if (!res.body) {
-    throw new ApiError(
-      0,
-      "NO_STREAM_BODY",
-      "La respuesta no incluye un cuerpo de streaming",
-    );
+    throw new ApiError(0, "NO_STREAM_BODY", "NO_STREAM_BODY");
   }
 
   const reader = res.body.getReader();

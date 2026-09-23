@@ -2,6 +2,7 @@
 // Llamadas a `/api/v1/books/*` con autenticación Supabase (Bearer token).
 
 import { supabase } from "@/lib/supabase/client";
+import { suggestionsResponseSchema } from "@/lib/validations/suggestions";
 import type {
   BookLookupResponse,
   BookCreateRequest,
@@ -11,6 +12,7 @@ import type {
   Note,
   NoteCreateRequest,
   PaginatedNotes,
+  SuggestionsResponse,
 } from "@/types/book";
 
 /** Error tipado devuelto por la API. */
@@ -216,4 +218,94 @@ export async function createNote(
   }
 
   return (await res.json()) as Note;
+}
+
+/**
+ * `DELETE /api/v1/books/{id}`
+ * Borra un libro (y sus notas vía cascada). 204 No Content.
+ */
+export async function deleteBook(id: string): Promise<void> {
+  const headers = await authHeaders();
+  const res = await fetch(`/api/v1/books/${id}`, {
+    method: "DELETE",
+    headers,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new ApiError(
+      res.status,
+      errorData.code ?? "DELETE_BOOK_FAILED",
+      errorData.message ?? "No se pudo eliminar el libro",
+    );
+  }
+}
+
+/**
+ * `DELETE /api/v1/books/{bookId}/notes/{noteId}`
+ * Borra una nota del libro. 204 No Content.
+ */
+export async function deleteNote(
+  bookId: string,
+  noteId: string,
+): Promise<void> {
+  const headers = await authHeaders();
+  const res = await fetch(`/api/v1/books/${bookId}/notes/${noteId}`, {
+    method: "DELETE",
+    headers,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new ApiError(
+      res.status,
+      errorData.code ?? "DELETE_NOTE_FAILED",
+      errorData.message ?? "No se pudo eliminar la nota",
+    );
+  }
+}
+
+// ============================================================
+// Feature 023: Search Suggestions / Typeahead
+// ============================================================
+
+/**
+ * `GET /api/v1/books/suggestions?q=&limit=`
+ * Sugerencias de búsqueda en vivo (biblioteca + catálogo). Valida la respuesta
+ * con Zod y convierte los errores a `ApiError`. Soporta `AbortSignal` para
+ * cancelar respuestas obsoletas.
+ */
+export async function getBookSuggestions(
+  query: string,
+  limit = 8,
+  signal?: AbortSignal,
+): Promise<SuggestionsResponse> {
+  const headers = await authHeaders();
+  const params = new URLSearchParams({
+    q: query,
+    limit: String(limit),
+  });
+  const res = await fetch(`/api/v1/books/suggestions?${params.toString()}`, {
+    headers,
+    signal,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new ApiError(
+      res.status,
+      errorData.code ?? "SUGGESTIONS_FAILED",
+      errorData.message ?? "No se pudieron cargar las sugerencias",
+    );
+  }
+
+  const parsed = suggestionsResponseSchema.safeParse(await res.json());
+  if (!parsed.success) {
+    throw new ApiError(
+      res.status,
+      "INVALID_SUGGESTIONS_RESPONSE",
+      "Respuesta de sugerencias inválida",
+    );
+  }
+  return parsed.data;
 }

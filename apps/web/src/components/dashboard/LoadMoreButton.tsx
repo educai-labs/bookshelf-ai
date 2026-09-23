@@ -3,6 +3,7 @@
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 
 export interface LoadMoreButtonProps {
   onClick: () => void;
@@ -20,6 +21,7 @@ export function LoadMoreButton({
   isLoadingMore,
   hasMore,
 }: LoadMoreButtonProps) {
+  const { t } = useTranslation();
   return (
     <Button
       variant="outline"
@@ -32,10 +34,10 @@ export function LoadMoreButton({
       {isLoadingMore ? (
         <>
           <Loader2 className="animate-spin" aria-hidden="true" />
-          Cargando...
+          {t("common.loading")}
         </>
       ) : (
-        "Cargar más"
+        t("dashboard.loadMore")
       )}
     </Button>
   );

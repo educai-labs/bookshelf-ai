@@ -109,3 +109,31 @@ export interface PaginatedNotes {
   page: number;
   page_size: number;
 }
+
+// ============================================================
+// Tipos para Search Suggestions / Typeahead (feature 023)
+// Espejo de los modelos Pydantic: apps/api/app/models/suggestions.py
+// ============================================================
+
+/** Origen de una sugerencia (merge biblioteca + catálogo). */
+export type SuggestionSource = "library" | "catalog";
+
+/** Una sugerencia normalizada para el dropdown (espejo de `BookSuggestion`). */
+export interface BookSuggestion {
+  source: SuggestionSource;
+  /** Presente solo en sugerencias de biblioteca; `null` en catálogo. */
+  book_id: string | null;
+  isbn13: string;
+  title: string;
+  authors: string[];
+  cover_url: string | null;
+  /** True para biblioteca; false para catálogo. */
+  in_library: boolean;
+}
+
+/** Respuesta de `GET /api/v1/books/suggestions` (espejo de `SuggestionsResponse`). */
+export interface SuggestionsResponse {
+  query: string;
+  limit: number;
+  items: BookSuggestion[];
+}

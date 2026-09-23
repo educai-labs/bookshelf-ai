@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SearchInput } from "../SearchInput";
 
+vi.mock("@/lib/api/books", () => ({
+  getBookSuggestions: vi.fn(() =>
+    Promise.resolve({ query: "", limit: 8, items: [] }),
+  ),
+}));
+
 describe("SearchInput", () => {
   beforeEach(() => {
     vi.useFakeTimers();

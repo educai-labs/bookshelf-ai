@@ -5,7 +5,8 @@
   "description": "Bookshelf — gestor personal de biblioteca con búsqueda semántica (Supabase + FastAPI + Next.js)",
   "scripts": {
     "verify:supabase": "tsx scripts/verify-supabase.ts",
-    "verify:supabase:py": ".venv/bin/python scripts/verify-supabase.py"
+    "verify:supabase:py": ".venv/bin/python scripts/verify-supabase.py",
+    "verify:schema": ".venv/bin/python scripts/verify-schema.py"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.112.3",

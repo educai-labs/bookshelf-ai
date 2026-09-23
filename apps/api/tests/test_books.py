@@ -387,6 +387,39 @@ async def test_create_book_con_campos_editables(client):
     assert body["started_at"] == "2026-01-10"
 
 
+async def test_create_book_desde_search_json_campos_null_y_fecha(client):
+    """Criterio 025: alta vía search.json → description/page_count/publisher NULL.
+
+    `published_date` = first_publish_year se conserva (parsed a `date`).
+    """
+
+    class _SearchJsonLookupService:
+        async def buscar(self, isbn: str) -> ISBNLookupResponse:
+            return ISBNLookupResponse(
+                title="Unlimited power",
+                authors=["Tony Robbins"],
+                cover_url="https://covers.openlibrary.org/b/id/4166860-M.jpg",
+                published_date="1987",
+                description=None,
+                page_count=None,
+                publisher=None,
+            )
+
+    app.dependency_overrides[get_lookup_service] = lambda: _SearchJsonLookupService()
+
+    resp = await client.post("/api/v1/books", json={"isbn13": "9780684838724"})
+
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["title"] == "Unlimited power"
+    assert body["authors"] == ["Tony Robbins"]
+    assert body["cover_url"] == "https://covers.openlibrary.org/b/id/4166860-M.jpg"
+    assert body["published_date"] == "1987-01-01"
+    assert body["description"] is None
+    assert body["page_count"] is None
+    assert body["publisher"] is None
+
+
 async def test_create_book_isbn_invalido_422(client):
     """Criterio: ISBN que no son 13 dígitos → 422 `VALIDATION_ERROR`."""
     resp = await client.post("/api/v1/books", json={"isbn13": "97884123"})

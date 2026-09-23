@@ -105,21 +105,36 @@ def load_book_notes(supabase, user_id: str, book_id: UUID) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def build_book_prompt(book: dict, notes: list[dict]) -> str:
+def build_book_prompt(book: dict, notes: list[dict], language: str | None = None) -> str:
     """Prompt de contexto libro con título, autores y notas completas."""
     title = book.get("title") or "Sin título"
     authors = ", ".join(book.get("authors") or []) or "Autor desconocido"
     notes_text = "\n\n".join((note.get("content") or "") for note in notes)
-    return BOOK_PROMPT_TEMPLATE.format(title=title, authors=authors, notes=notes_text)
+    prompt = BOOK_PROMPT_TEMPLATE.format(title=title, authors=authors, notes=notes_text)
+    return prompt + language_instruction(language)
 
 
-def build_rag_prompt(results: list[dict]) -> str:
+def build_rag_prompt(results: list[dict], language: str | None = None) -> str:
     """Prompt RAG con el contenido y el título de cada fragmento devuelto."""
     chunks = [
         f"Libro '{result.get('book_title') or 'Sin título'}': " f"{result.get('content') or ''}"
         for result in results
     ]
-    return RAG_PROMPT_TEMPLATE.format(chunks="\n\n".join(chunks))
+    prompt = RAG_PROMPT_TEMPLATE.format(chunks="\n\n".join(chunks))
+    return prompt + language_instruction(language)
+
+
+def language_instruction(language: str | None) -> str:
+    """Instrucción de idioma de respuesta (feature 022); vacía si no se indica.
+
+    Permite que la preferencia "respuestas en el idioma de la interfaz" del
+    cliente se traduzca en un sufijo del prompt, sin exponer selector de modelo.
+    """
+    if language == "en":
+        return "\n\nResponde en inglés."
+    if language == "es":
+        return "\n\nResponde en español."
+    return ""
 
 
 # ---------------------------------------------------------------------------

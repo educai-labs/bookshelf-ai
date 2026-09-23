@@ -2,10 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAddBookModal } from "@/components/books/AddBookModalProvider";
 import { useBooks } from "@/lib/hooks/useBooks";
-import type { Book, BookFilters } from "@/types/book";
+import type { Book, BookFilters, BookSuggestion } from "@/types/book";
+import { useTranslation } from "@/lib/i18n";
+import { pluralize } from "@/lib/formatters";
 import { BookCard } from "./BookCard";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
@@ -27,12 +31,12 @@ export interface LibraryGridProps {
 const DEFAULT_FILTERS: BookFilters = { q: "" };
 
 /** Skeleton del primer fetch: grid de 8 cards (espejo del grid real). */
-function BooksSkeleton() {
+function BooksSkeleton({ label }: { label: string }) {
   return (
     <div
       className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       data-testid="books-skeleton"
-      aria-label="Cargando libros"
+      aria-label={label}
     >
       {Array.from({ length: 8 }, (_, i) => (
         <Skeleton key={i} className="aspect-[2/3] w-full rounded-xl" />
@@ -42,10 +46,13 @@ function BooksSkeleton() {
 }
 
 /**
- * Grid principal del dashboard (feature 013):
+ * Grid principal del dashboard (features 013 + 023):
  * - Estado interno de `filters` (status, rating, q) con merge del seed.
  * - Data engine en `useBooks` (debounce 300ms de `q`, reset+fetch en cambio
  *   de filtros, paginación "Cargar más" con append).
+ * - Buscador combinado (`SearchInput`) con sugerencias en vivo: seleccionar una
+ *   de biblioteca navega a `/book/[id]`; una de catálogo abre `AddBookModal`
+ *   con el ISBN precargado.
  * - Header sticky con filtros; grid responsive `1/2/3/4` cols (`sm/lg/xl`).
  * - Estados: Skeleton (primer fetch), EmptyState (sin resultados), ErrorState.
  */
@@ -55,6 +62,8 @@ export function LibraryGrid({
   initialFilters,
 }: LibraryGridProps) {
   const router = useRouter();
+  const { t, language } = useTranslation();
+  const { openAddBook } = useAddBookModal();
   const [filters, setFilters] = useState<BookFilters>({
     ...DEFAULT_FILTERS,
     ...initialFilters,
@@ -89,6 +98,18 @@ export function LibraryGrid({
     setFilters((prev) => ({ ...prev, q }));
   }
 
+  function handleSelectSuggestion(item: BookSuggestion) {
+    if (item.source === "library" && item.book_id) {
+      router.push(`/book/${item.book_id}`);
+    } else {
+      openAddBook(item.isbn13);
+    }
+  }
+
+  function handleSuggestionError() {
+    toast.error(t("suggestions.errorToast"));
+  }
+
   const showSkeleton = isLoading && books.length === 0;
 
   return (
@@ -107,6 +128,8 @@ export function LibraryGrid({
             <SearchInput
               value={filters.q ?? ""}
               onChange={handleSearchChange}
+              onSelectSuggestion={handleSelectSuggestion}
+              onSuggestionError={handleSuggestionError}
             />
           </div>
         </div>
@@ -115,7 +138,7 @@ export function LibraryGrid({
       {error ? (
         <ErrorState message={error.message} onRetry={() => void retry()} />
       ) : showSkeleton ? (
-        <BooksSkeleton />
+        <BooksSkeleton label={t("dashboard.skeletonAria")} />
       ) : books.length === 0 ? (
         <EmptyState />
       ) : (
@@ -142,7 +165,13 @@ export function LibraryGrid({
             </div>
           )}
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            {total} {total === 1 ? "libro" : "libros"}
+            {total}{" "}
+            {pluralize(
+              language,
+              total,
+              t("dashboard.booksCount.one"),
+              t("dashboard.booksCount.many"),
+            )}
           </p>
         </>
       )}

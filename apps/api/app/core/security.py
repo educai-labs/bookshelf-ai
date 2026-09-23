@@ -24,8 +24,10 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 @lru_cache(maxsize=1)
 def _jwks_client() -> PyJWKClient:
-    url = settings.supabase_jwks_url or (
-        f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+    url = (
+        str(settings.supabase_jwks_url)
+        if settings.supabase_jwks_url
+        else (f"{str(settings.supabase_url).rstrip('/')}/auth/v1/.well-known/jwks.json")
     )
     return PyJWKClient(url)
 

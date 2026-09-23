@@ -25,8 +25,10 @@ async def init_db() -> None:
 
     if _supabase is None:
         if settings.supabase_url and settings.supabase_service_role_key:
-            _supabase = create_client(settings.supabase_url, settings.supabase_service_role_key)
-            logger.info("supabase_client_initialized", url=settings.supabase_url)
+            _supabase = create_client(
+                str(settings.supabase_url), settings.supabase_service_role_key
+            )
+            logger.info("supabase_client_initialized", url=str(settings.supabase_url))
         else:
             logger.warning(
                 "supabase_client_skipped",

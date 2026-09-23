@@ -28,7 +28,7 @@ from supabase import Client
 
 from app.api.v1.dependencies import get_book_ownership
 from app.core.database import get_supabase
-from app.core.errors import map_supabase_error
+from app.core.errors import map_supabase_error, raise_http_exception
 from app.core.security import get_current_user
 from app.models.books import BookRead
 from app.models.notes import NoteCreate, NoteListResponse, NoteRead
@@ -130,6 +130,49 @@ async def list_notes(
         page=page,
         page_size=page_size,
     )
+
+
+# ---------------------------------------------------------------------------
+# DELETE /books/{book_id}/notes/{note_id}
+# ---------------------------------------------------------------------------
+
+
+@router.delete(
+    "/{note_id}",
+    status_code=204,
+    summary="Borrar una nota",
+    description=(
+        "Borra una nota del libro (ownership validado vía `get_book_ownership` + "
+        "filtro por `user_id`). 204 si se borra; 404 si no existe o no pertenece "
+        "al usuario."
+    ),
+)
+async def delete_note(
+    book_id: Annotated[UUID, Path(description="ID del libro")],
+    note_id: Annotated[UUID, Path(description="ID de la nota")],
+    supabase: Annotated[Client, Depends(get_supabase)],
+    user_id: Annotated[str, Depends(get_current_user)],
+    _book: Annotated[BookRead, Depends(get_book_ownership)],
+) -> None:
+    """`.delete()` filtrado por `user_id` y `book_id`; 404 si no afecta filas."""
+    try:
+        resp = (
+            supabase.table("book_notes")
+            .delete()
+            .eq("id", str(note_id))
+            .eq("book_id", str(book_id))
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except APIError as exc:
+        map_supabase_error(exc)
+
+    if not resp.data:
+        raise_http_exception(
+            "NOTE_NOT_FOUND",
+            "La nota no existe o no pertenece al usuario",
+            status_code=404,
+        )
 
 
 # ---------------------------------------------------------------------------

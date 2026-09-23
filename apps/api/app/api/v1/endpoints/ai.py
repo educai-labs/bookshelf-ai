@@ -122,10 +122,24 @@ async def _event_stream(
     """Generador SSE: prepara contexto, emite chunks y evento final o de error."""
     try:
         async with asyncio.timeout(STREAM_TIMEOUT_SECONDS):
+            use_notes = request.use_notes is not False
             if mode == "book":
-                prompt = _build_book_prompt(supabase, user_id, request.book_id, book)
+                prompt = _build_book_prompt(
+                    supabase,
+                    user_id,
+                    request.book_id,
+                    book,
+                    request.language,
+                    use_notes=use_notes,
+                )
             else:
-                prompt = await _build_rag_prompt(supabase, user_id, request.query)
+                prompt = await _build_rag_prompt(
+                    supabase,
+                    user_id,
+                    request.query,
+                    request.language,
+                    use_notes=use_notes,
+                )
 
             async for token in chat_service.stream_chat_tokens(prompt):
                 yield _sse_chunk(token)
@@ -171,19 +185,38 @@ def _build_book_prompt(
     user_id: str,
     book_id: UUID,
     book: dict | None,
+    language: str | None = None,
+    use_notes: bool = True,
 ) -> str:
-    """Prompt de contexto libro: título + autores + notas completas del usuario."""
+    """Prompt de contexto libro: título + autores + notas completas del usuario.
+
+    Si `use_notes` es `False` (preferencia de privacidad), se omite la carga de
+    notas y el prompt queda solo con los metadatos del libro.
+    """
     if book is None:
         raise_book_not_found()  # defensivo: ya validado antes del stream
-    notes = chat_service.load_book_notes(supabase, user_id, book_id)
-    return chat_service.build_book_prompt(book, notes)
+    notes = chat_service.load_book_notes(supabase, user_id, book_id) if use_notes else []
+    return chat_service.build_book_prompt(book, notes, language)
 
 
-async def _build_rag_prompt(supabase: Client, user_id: str, query: str) -> str:
-    """Prompt RAG: embedding de la consulta → RPC → prompt con fragmentos + títulos."""
+async def _build_rag_prompt(
+    supabase: Client,
+    user_id: str,
+    query: str,
+    language: str | None = None,
+    use_notes: bool = True,
+) -> str:
+    """Prompt RAG: embedding de la consulta → RPC → prompt con fragmentos + títulos.
+
+    Si `use_notes` es `False`, se omite el embedding y la búsqueda semántica; el
+    modelo responde sin contexto de notas (el aislamiento por `user_id` se
+    mantiene en el RPC cuando sí se consulta).
+    """
+    if not use_notes:
+        return chat_service.build_rag_prompt([], language)
     embedding = await asyncio.to_thread(chat_service.embed_query, query)
     results = chat_service.match_notes(supabase, embedding, user_id)
-    return chat_service.build_rag_prompt(results)
+    return chat_service.build_rag_prompt(results, language)
 
 
 # ---------------------------------------------------------------------------

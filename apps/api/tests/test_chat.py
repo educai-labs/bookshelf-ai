@@ -189,9 +189,10 @@ def test_chat_mode_book_construye_prompt_con_libro_y_notas(client, monkeypatch):
     _book(monkeypatch)
     captured = {}
 
-    def fake_build(book, notes):
+    def fake_build(book, notes, language=None):
         captured["book"] = book
         captured["notes"] = notes
+        captured["language"] = language
         return "PROMPT-LIBRO"
 
     monkeypatch.setattr(chat_service, "build_book_prompt", fake_build)
@@ -294,6 +295,74 @@ def test_chat_default_rag_sin_book_id(client, monkeypatch):
     resp = client.post("/api/v1/ai/chat", json={"query": "hola"})
 
     assert resp.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Preferencia `use_notes` (feature 022): omitir notas sin romper el aislamiento
+# ---------------------------------------------------------------------------
+
+
+def test_chat_mode_book_use_notes_false_omite_notas(client, monkeypatch):
+    """`use_notes=false` → el prompt del libro no incluye notas del usuario."""
+    _book(monkeypatch)
+    captured = {}
+
+    def fake_build(book, notes, language=None):
+        captured["notes"] = notes
+        return "PROMPT-LIBRO"
+
+    monkeypatch.setattr(chat_service, "build_book_prompt", fake_build)
+    monkeypatch.setattr(chat_service, "stream_chat_tokens", _stream(["ok"]))
+
+    resp = client.post(
+        "/api/v1/ai/chat",
+        json={"query": "resumen", "book_id": BOOK_ID, "mode": "book", "use_notes": False},
+    )
+
+    assert resp.status_code == 200
+    assert captured["notes"] == []
+
+
+def test_chat_mode_rag_use_notes_false_omite_embedding_y_rpc(client, monkeypatch):
+    """`use_notes=false` → no embebe la consulta ni consulta `match_book_notes`."""
+    calls = {"embed": 0, "match": 0}
+
+    def fake_embed(query):
+        calls["embed"] += 1
+        return [0.1] * DIM
+
+    def fake_match(supabase, embedding, user_id):
+        calls["match"] += 1
+        return []
+
+    monkeypatch.setattr(chat_service, "embed_query", fake_embed)
+    monkeypatch.setattr(chat_service, "match_notes", fake_match)
+    monkeypatch.setattr(chat_service, "stream_chat_tokens", _stream(["ok"]))
+
+    resp = client.post(
+        "/api/v1/ai/chat", json={"query": "biblioteca", "mode": "rag", "use_notes": False}
+    )
+
+    assert resp.status_code == 200
+    assert calls["embed"] == 0
+    assert calls["match"] == 0
+
+
+def test_chat_use_notes_default_verdadero_incluye_notas(client, monkeypatch):
+    """Sin `use_notes` (default `True`): el modo book sigue incluyendo notas."""
+    _book(monkeypatch)
+    captured = {}
+
+    def fake_build(book, notes, language=None):
+        captured["notes"] = notes
+        return "PROMPT-LIBRO"
+
+    monkeypatch.setattr(chat_service, "build_book_prompt", fake_build)
+    monkeypatch.setattr(chat_service, "stream_chat_tokens", _stream(["ok"]))
+
+    client.post("/api/v1/ai/chat", json={"query": "resumen", "book_id": BOOK_ID, "mode": "book"})
+
+    assert [n["chunk_index"] for n in captured["notes"]] == [0, 1]
 
 
 # ---------------------------------------------------------------------------

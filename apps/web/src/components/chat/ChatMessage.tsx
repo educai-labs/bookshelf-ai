@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { renderMarkdownToHtml } from "@/utils/markdown";
+import { useTranslation } from "@/lib/i18n";
 
 /** Mensaje de la conversación (contrato de sesión: `{ role, content }`). */
 export interface ChatMessageData {
@@ -20,11 +21,12 @@ interface ChatMessageProps {
  */
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
+  const { t } = useTranslation();
 
   return (
     <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}>
       <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
-        {isUser ? "Tú" : "IA"}
+        {isUser ? t("chat.you") : t("chat.ai")}
       </div>
       <div
         data-testid={`chat-message-${message.role}`}

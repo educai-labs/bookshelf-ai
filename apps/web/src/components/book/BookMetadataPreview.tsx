@@ -6,6 +6,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import type { BookLookupResponse } from "@/types/book";
 
 const DESCRIPTION_MAX_LINES = 3;
@@ -27,13 +28,14 @@ export function BookMetadataPreview({
   isLoading = false,
 }: BookMetadataPreviewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { t } = useTranslation();
 
   if (isLoading || !data) {
     return (
       <div
         className="space-y-4"
         role="status"
-        aria-label="Cargando vista previa del libro"
+        aria-label={t("preview.loadingAria")}
       >
         <Skeleton className="mx-auto h-48 w-full max-w-xs rounded-lg" />
         <Skeleton className="h-6 w-3/4" />
@@ -61,10 +63,14 @@ export function BookMetadataPreview({
   } = data;
 
   const authorsText =
-    authors.length > 0 ? authors.join(", ") : "Autor desconocido";
-  const pagesText = page_count ? `${page_count} págs.` : null;
-  const publisherText = publisher ? `Editorial: ${publisher}` : null;
-  const dateText = published_date ? `Publicado: ${published_date}` : null;
+    authors.length > 0 ? authors.join(", ") : t("book.unknownAuthor");
+  const pagesText = page_count ? `${page_count} ${t("preview.pages")}` : null;
+  const publisherText = publisher
+    ? `${t("book.publisher")}: ${publisher}`
+    : null;
+  const dateText = published_date
+    ? `${t("book.published")}: ${published_date}`
+    : null;
 
   // Truncado de descripción a 3 líneas
   const showTruncate = description && description.length > 200;
@@ -80,7 +86,7 @@ export function BookMetadataPreview({
         {cover_url ? (
           <Image
             src={cover_url}
-            alt={`Portada de ${title}`}
+            alt={t("book.coverAlt", { title })}
             className="h-48 w-auto max-w-xs rounded-lg object-cover shadow-md"
             loading="lazy"
             width={300}
@@ -92,7 +98,7 @@ export function BookMetadataPreview({
               "flex h-48 w-full max-w-xs items-center justify-center rounded-lg border-2 border-dashed border-muted",
             )}
             role="img"
-            aria-label="Sin portada disponible"
+            aria-label={t("preview.noCoverAria")}
           >
             <ImageIcon className="size-12 text-muted" />
           </div>
@@ -140,7 +146,7 @@ export function BookMetadataPreview({
               aria-expanded={isExpanded}
               aria-controls="book-description"
             >
-              {isExpanded ? "Ver menos" : "Ver más"}
+              {isExpanded ? t("preview.showLess") : t("preview.showMore")}
               <ChevronDown
                 className={cn(
                   "h-3 w-3 transition-transform",

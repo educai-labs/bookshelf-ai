@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useTranslation } from "@/lib/i18n";
 import type { ChatMode } from "@/lib/api/chat";
 
 interface ChatInputProps {
@@ -38,6 +39,7 @@ export function ChatInput({
   showModeSelector,
 }: ChatInputProps) {
   const canSend = value.trim().length > 0 && !disabled;
+  const { t } = useTranslation();
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -50,17 +52,22 @@ export function ChatInput({
     <div className="flex flex-col gap-2">
       {showModeSelector && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Contexto:</span>
+          <span className="text-sm text-muted-foreground">
+            {t("chat.contextLabel")}
+          </span>
           <Select
             value={mode}
             onValueChange={(next) => onModeChange(next as ChatMode)}
           >
-            <SelectTrigger className="w-[180px]" aria-label="Modo de contexto">
+            <SelectTrigger
+              className="w-[180px]"
+              aria-label={t("chat.modeAria")}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="book">Este libro</SelectItem>
-              <SelectItem value="rag">Toda la biblioteca</SelectItem>
+              <SelectItem value="book">{t("chat.thisBook")}</SelectItem>
+              <SelectItem value="rag">{t("chat.wholeLibrary")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -71,15 +78,15 @@ export function ChatInput({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Escribe tu pregunta..."
+          placeholder={t("chat.placeholder")}
           disabled={disabled}
-          aria-label="Mensaje"
+          aria-label={t("chat.messageAria")}
           className="min-h-[52px] flex-1 resize-none"
         />
         <Button
           onClick={onSend}
           disabled={!canSend}
-          aria-label="Enviar mensaje"
+          aria-label={t("chat.sendAria")}
           size="icon"
         >
           <SendHorizontal className="size-4" />

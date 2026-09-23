@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase/client";
-import { AddBookModal } from "@/components/books/AddBookModal";
+import { useAddBookModal } from "@/components/books/AddBookModalProvider";
+import { useTranslation } from "@/lib/i18n";
+import { useSettings } from "@/contexts/SettingsContext";
 
 /** Iniciales del email para el fallback del avatar ("ana.m@x.com" → "AM"). */
 function initialsOf(email: string | null | undefined): string {
@@ -38,16 +40,25 @@ function initialsOf(email: string | null | undefined): string {
 export function DashboardHeader() {
   const router = useRouter();
   const { user } = useSession();
+  const { t } = useTranslation();
+  const { settings } = useSettings();
+  const { openAddBook } = useAddBookModal();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   async function handleSignOut() {
     setIsSigningOut(true);
     try {
       await supabase.auth.signOut();
-      toast.success("Sesión cerrada");
+      // Evento de cuenta (sección 3.5): solo si la notificación está activada.
+      if (settings.notifications.account) {
+        toast.success(t("header.signOutSuccess"));
+      }
       router.push("/login");
     } catch {
-      toast.error("Error al cerrar sesión");
+      // Notificación de errores (sección 3.5): solo si está activada.
+      if (settings.notifications.errors) {
+        toast.error(t("header.signOutError"));
+      }
     } finally {
       setIsSigningOut(false);
     }
@@ -57,12 +68,10 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-6">
       <div className="flex items-center gap-2 font-semibold">Bookshelf</div>
       <div className="flex items-center gap-2">
-        <AddBookModal>
-          <Button size="sm" className="gap-2">
-            <Plus className="size-4" />
-            Añadir libro
-          </Button>
-        </AddBookModal>
+        <Button size="sm" className="gap-2" onClick={() => openAddBook()}>
+          <Plus className="size-4" />
+          {t("header.addBook")}
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2">
@@ -71,11 +80,15 @@ export function DashboardHeader() {
                   {initialsOf(user?.email)}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm">{user?.email ?? "Mi cuenta"}</span>
+              <span className="text-sm">
+                {user?.email ?? t("header.account")}
+              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{user?.email ?? "Mi cuenta"}</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {user?.email ?? t("header.account")}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={handleSignOut}
@@ -87,7 +100,7 @@ export function DashboardHeader() {
               ) : (
                 <LogOut className="size-4" />
               )}
-              Cerrar sesión
+              {t("header.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

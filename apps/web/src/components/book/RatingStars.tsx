@@ -1,4 +1,7 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 export type RatingStarSize = "sm" | "md" | "lg";
 
@@ -45,11 +48,12 @@ export function RatingStars({
 }: RatingStarsProps) {
   const filled = rating !== null && rating > 0;
   const count = filled ? Math.min(rating, max) : 0;
+  const { t } = useTranslation();
 
   return (
     <div
       role="img"
-      aria-label={`Rating: ${count} de ${max}`}
+      aria-label={t("rating.aria", { count, max })}
       className="flex items-center gap-0.5"
     >
       {Array.from({ length: max }, (_, i) => (
