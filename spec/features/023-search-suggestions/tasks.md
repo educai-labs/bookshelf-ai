@@ -1,0 +1,45 @@
+# 023 · Search Suggestions (Typeahead) — Tareas
+
+- [x] Crear los modelos Pydantic de fuentes, sugerencias y respuesta en `apps/api/app/models/suggestions.py`, incluyendo campos opcionales y validación de `limit` entre 1 y 20.
+- [x] Añadir al servicio ISBN una operación independiente de búsqueda textual, sin modificar el contrato de `buscar(isbn)`.
+- [x] Implementar el mapeo normalizado de resultados textuales de Open Library y Google Books, descartando resultados sin ISBN-13 resoluble.
+- [x] Incorporar caché en memoria por consulta normalizada con TTL de una hora para la búsqueda externa.
+- [x] Configurar para la búsqueda textual un timeout de 2 segundos y cero reintentos.
+- [x] Crear el servicio de sugerencias que consulte la biblioteca autenticada por título, autores e ISBN con `ilike`.
+- [x] Aplicar el `user_id` derivado del JWT a la consulta de biblioteca y verificar el aislamiento entre usuarios.
+- [x] Implementar el umbral de tres caracteres para evitar llamadas al catálogo externo en consultas más cortas.
+- [x] Implementar el merge biblioteca-catálogo con prioridad de biblioteca, deduplicación por ISBN-13, orden estable y truncado al límite solicitado.
+- [x] Crear el endpoint autenticado `GET /api/v1/books/suggestions` con `q` obligatorio, trim, límite por defecto 8 y clamp entre 1 y 20.
+- [x] Registrar el endpoint en el router vigente de la API.
+- [x] Mapear los errores de validación al formato estructurado `{code, message, field?}` y conservar el 401 para solicitudes sin token.
+- [x] Implementar el comportamiento fail-soft del endpoint: registrar errores y timeouts externos y devolver HTTP 200 con las sugerencias de biblioteca.
+- [x] Añadir pruebas backend de autenticación, validación de `q` y `limit`, búsquedas por título/autor/ISBN y aislamiento entre usuarios.
+- [x] Añadir pruebas backend del umbral sin HTTP, timeout sin reintentos, fallback, caché, deduplicación, prioridad, orden y límite.
+- [x] Añadir los tipos `SuggestionSource`, `BookSuggestion` y la respuesta de sugerencias en los tipos del frontend.
+- [x] Implementar `getBookSuggestions` autenticado con validación Zod de la respuesta y conversión de errores a `ApiError`.
+- [x] Crear `useBookSuggestions` con debounce de 300 ms, umbral de tres caracteres y límite de ocho elementos.
+- [x] Añadir a `useBookSuggestions` cancelación mediante `AbortController`, descarte de respuestas obsoletas y estados de loading, vacío y error.
+- [x] Crear los componentes reutilizables del combobox y dropdown bajo `apps/web/src/components/search/`.
+- [x] Implementar en el combobox los roles ARIA, foco visible y navegación ↑/↓, Enter y Escape.
+- [x] Renderizar en el dropdown loading, estado vacío, portadas con `alt`, placeholder, badge de biblioteca y lista scrollable responsive.
+- [x] Integrar el combobox en `SearchInput` y `LibraryGrid`, manteniendo separado el texto inmediato del filtro `q` debounced.
+- [x] Implementar la selección de biblioteca del dashboard mediante navegación a `/book/[id]`.
+- [x] Implementar la selección de catálogo del dashboard mediante apertura del `AddBookModal` con ISBN precargado.
+- [x] Mantener el comportamiento de Enter sin selección para aplicar el texto como filtro del grid.
+- [x] Mostrar un toast no bloqueante ante fallos de sugerencias sin impedir el filtro del grid.
+- [x] Adaptar `AddBookModal` para admitir apertura controlada e ISBN inicial sin romper `DialogTrigger`.
+- [x] Conectar el ISBN inicial del modal con el lookup existente y la carga de preview de catálogo.
+- [x] Preservar en el modal la entrada manual de ISBN-13, su normalización y sus errores existentes.
+- [x] Mostrar y hacer cumplir la coincidencia "Ya en tu biblioteca" antes de intentar guardar.
+- [x] Conectar la apertura controlada desde el dashboard sin duplicar el modal.
+- [x] Garantizar que Escape cierre primero el dropdown y después el Dialog cuando corresponda.
+- [x] Añadir las traducciones es/en de dropdown, estados, badge, error y toast, y consumirlas mediante `useTranslation`.
+- [x] Añadir pruebas Vitest y RTL del hook para debounce, umbral, cancelación, respuestas fuera de orden y una petición por pausa.
+- [x] Añadir pruebas Vitest y RTL del dropdown para roles ARIA, estados, portadas, teclado, foco y responsive.
+- [x] Añadir pruebas Vitest y RTL de merge/deduplicación visual y selecciones de dashboard hacia ficha o modal.
+- [x] Añadir pruebas Vitest y RTL de integración del modal, ISBN manual y secuencias de Escape.
+- [x] Ejecutar `cd apps/api && pytest -v` y corregir cualquier fallo de la suite backend.
+- [x] Ejecutar `cd apps/api && ruff check . && black --check .` y corregir cualquier incumplimiento.
+- [x] Ejecutar `cd apps/web && npm run test` y corregir cualquier fallo de la suite frontend.
+- [x] Ejecutar `cd apps/web && npm run lint && npm run build` y corregir cualquier incumplimiento o fallo de compilación.
+- [x] Actualizar documentación si aplica.
