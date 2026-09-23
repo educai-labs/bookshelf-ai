@@ -9,12 +9,15 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import type { Book } from "@/types/book";
+import { AddBookModalProvider } from "@/components/books/AddBookModalProvider";
+import type { Book, BookSuggestion } from "@/types/book";
 import { LibraryGrid } from "../LibraryGrid";
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   getSession: vi.fn(),
+  getBookSuggestions: vi.fn(),
+  lookupBook: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -37,6 +40,46 @@ vi.mock("@/hooks/useAuth", () => ({
   })),
   useUser: vi.fn(() => ({ id: "test-user-id" }) as any),
 }));
+
+vi.mock("@/lib/api/books", () => ({
+  getBookSuggestions: mocks.getBookSuggestions,
+  lookupBook: mocks.lookupBook,
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    loading: vi.fn(),
+    promise: vi.fn(),
+  },
+}));
+
+const BOOK_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+function librarySuggestion(title: string): BookSuggestion {
+  return {
+    source: "library",
+    book_id: BOOK_ID,
+    isbn13: "9780000000001",
+    title,
+    authors: ["Autor"],
+    cover_url: null,
+    in_library: true,
+  };
+}
+
+function catalogSuggestion(title: string, isbn13: string): BookSuggestion {
+  return {
+    source: "catalog",
+    book_id: null,
+    isbn13,
+    title,
+    authors: ["Autor"],
+    cover_url: null,
+    in_library: false,
+  };
+}
 
 /** Dataset de 25 libros con los 3 status y rating 1-5 distribuidos (2 páginas × 20). */
 function buildDataset(): Book[] {
@@ -93,7 +136,9 @@ function createWrapper() {
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <AddBookModalProvider>{children}</AddBookModalProvider>
+      </QueryClientProvider>
     );
   };
 }
@@ -131,9 +176,16 @@ describe("LibraryGrid", () => {
   beforeEach(() => {
     mocks.push.mockReset();
     mocks.getSession.mockReset();
+    mocks.getBookSuggestions.mockReset();
+    mocks.lookupBook.mockReset();
     mocks.getSession.mockResolvedValue({
       data: { session: { access_token: "test-token" } },
       error: null,
+    });
+    mocks.getBookSuggestions.mockResolvedValue({
+      query: "",
+      limit: 8,
+      items: [],
     });
   });
 
@@ -141,9 +193,14 @@ describe("LibraryGrid", () => {
     vi.unstubAllGlobals();
   });
 
+  function renderGrid(ui: React.ReactElement) {
+    const Wrapper = createWrapper();
+    return render(ui, { wrapper: Wrapper });
+  }
+
   it("renders the grid with the initial books and navigates on card click", async () => {
     const fetchMock = stubPaginatedFetch();
-    render(
+    renderGrid(
       <LibraryGrid initialBooks={[DATASET[0], DATASET[1]]} initialTotal={25} />,
     );
 
@@ -160,7 +217,7 @@ describe("LibraryGrid", () => {
 
   it("filters by status tab and updates the query param", async () => {
     const fetchMock = stubPaginatedFetch();
-    render(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
     await screen.findByTestId("books-grid");
 
     await userEvent.click(screen.getByRole("tab", { name: "Leyendo" }));
@@ -169,7 +226,6 @@ describe("LibraryGrid", () => {
       const url = lastFetchUrl(fetchMock);
       expect(url).toContain("status=reading");
     });
-    // Solo los libros "reading" del dataset.
     await waitFor(() => {
       const titles = within(screen.getByTestId("books-grid")).getAllByText(
         /Libro/,
@@ -180,7 +236,7 @@ describe("LibraryGrid", () => {
 
   it("filters by rating select and updates the query param", async () => {
     const fetchMock = stubPaginatedFetch();
-    render(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
     await screen.findByTestId("books-grid");
 
     await userEvent.click(
@@ -195,7 +251,7 @@ describe("LibraryGrid", () => {
 
   it("debounces the search input (no request per keystroke)", async () => {
     const fetchMock = stubPaginatedFetch();
-    render(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
     await screen.findByTestId("books-grid");
     const callsBeforeTyping = fetchMock.mock.calls.length;
 
@@ -214,21 +270,9 @@ describe("LibraryGrid", () => {
     );
   });
 
-  function renderWithProviders(ui: React.ReactElement) {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
-    return render(
-      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
-    );
-  }
-
   it("shows the empty state when there are no books", async () => {
     stubPaginatedFetch([]);
-    renderWithProviders(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
 
     expect(
       await screen.findByText("Tu biblioteca está vacía"),
@@ -246,7 +290,7 @@ describe("LibraryGrid", () => {
           }),
       ),
     );
-    renderWithProviders(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
 
     expect(screen.getByTestId("books-skeleton")).toBeInTheDocument();
     expect(screen.getByTestId("books-skeleton").children).toHaveLength(8);
@@ -255,7 +299,7 @@ describe("LibraryGrid", () => {
   it("shows the error state and retries the request", async () => {
     const fetchMock = stubPaginatedFetch();
     fetchMock.mockRejectedValueOnce(new Error("Network down"));
-    renderWithProviders(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
 
     expect(await screen.findByTestId("error-state")).toBeInTheDocument();
     expect(screen.getByText("Error al cargar los libros")).toBeInTheDocument();
@@ -267,10 +311,9 @@ describe("LibraryGrid", () => {
 
   it("loads more and appends items, hiding the button when finished", async () => {
     const fetchMock = stubPaginatedFetch();
-    render(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
 
     await screen.findByTestId("books-grid");
-    // Página 1 = 20 libros.
     expect(
       within(screen.getByTestId("books-grid")).getAllByRole("button"),
     ).toHaveLength(20);
@@ -282,7 +325,6 @@ describe("LibraryGrid", () => {
         within(screen.getByTestId("books-grid")).getAllByRole("button"),
       ).toHaveLength(25);
     });
-    // page * page_size (2*20=40) >= total (25) → botón desaparece.
     await waitFor(() => {
       expect(screen.queryByTestId("load-more")).not.toBeInTheDocument();
     });
@@ -291,7 +333,7 @@ describe("LibraryGrid", () => {
 
   it("keeps the initial filters applied to the client state", async () => {
     const fetchMock = stubPaginatedFetch();
-    render(
+    renderGrid(
       <LibraryGrid
         initialBooks={[]}
         initialTotal={0}
@@ -300,7 +342,6 @@ describe("LibraryGrid", () => {
     );
     await screen.findByTestId("books-grid");
 
-    // El tab activo refleja el filtro inicial.
     await waitFor(() => {
       expect(screen.getByRole("tab", { name: "Leídos" })).toHaveAttribute(
         "data-state",
@@ -308,7 +349,61 @@ describe("LibraryGrid", () => {
       );
     });
 
-    // Y el primer fetch del cliente mantiene el status inicial.
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------
+  // Sugerencias (feature 023): selecciones del dashboard
+  // ---------------------------------------------------------------------
+
+  it("seleccionar una sugerencia de biblioteca navega a /book/[id]", async () => {
+    stubPaginatedFetch();
+    mocks.getBookSuggestions.mockResolvedValue({
+      query: "dun",
+      limit: 8,
+      items: [librarySuggestion("Dune")],
+    });
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+
+    const input = screen.getByPlaceholderText("Buscar título o autor...");
+    await userEvent.type(input, "dun");
+
+    const option = await screen.findByRole("option", { name: /Dune/ });
+    await userEvent.click(option);
+
+    expect(mocks.push).toHaveBeenCalledWith(`/book/${BOOK_ID}`);
+  });
+
+  it("seleccionar una sugerencia de catálogo abre el modal con el ISBN", async () => {
+    stubPaginatedFetch();
+    mocks.getBookSuggestions.mockResolvedValue({
+      query: "dun",
+      limit: 8,
+      items: [catalogSuggestion("Dune", "9780441172719")],
+    });
+    mocks.lookupBook.mockResolvedValue({
+      cover_url: null,
+      title: "Dune",
+      authors: ["Frank Herbert"],
+      page_count: null,
+      publisher: null,
+      published_date: null,
+      description: null,
+    });
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+
+    const input = screen.getByPlaceholderText("Buscar título o autor...");
+    await userEvent.type(input, "dun");
+
+    const option = await screen.findByRole("option", { name: /Dune/ });
+    await userEvent.click(option);
+
+    await waitFor(() => {
+      expect(mocks.lookupBook).toHaveBeenCalledWith(
+        "9780441172719",
+        expect.anything(),
+      );
+    });
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 });

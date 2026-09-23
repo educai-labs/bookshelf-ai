@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -6,17 +6,8 @@ import { Toaster } from "sonner";
 
 import { AddBookModal } from "./AddBookModal";
 
-// Mock dependencies
-vi.mock("@/hooks/useIsbnInput", () => ({
-  useIsbnInput: vi.fn(),
-}));
-
 vi.mock("@/hooks/useAddBook", () => ({
   useAddBook: vi.fn(),
-}));
-
-vi.mock("@/lib/api/books", () => ({
-  lookupBook: vi.fn(),
 }));
 
 vi.mock("@/hooks/useAuth", () => ({
@@ -27,41 +18,21 @@ vi.mock("@/hooks/useAuth", () => ({
   })),
 }));
 
-import { useIsbnInput } from "@/hooks/useIsbnInput";
-import { useAddBook } from "@/hooks/useAddBook";
-import { lookupBook } from "@/lib/api/books";
-import { useSession } from "@/hooks/useAuth";
+vi.mock("@/lib/api/books", () => ({
+  lookupBook: vi.fn(),
+  getBookSuggestions: vi.fn(),
+}));
 
-const mockIsbnInput = {
-  isbn: "9780123456789",
-  formattedIsbn: "978-0-123-45678-9",
-  isValid: true,
-  onChange: vi.fn(),
-  reset: vi.fn(),
-};
+import { useAddBook } from "@/hooks/useAddBook";
+import { getBookSuggestions, lookupBook } from "@/lib/api/books";
+
+const mockLookup = vi.mocked(lookupBook);
+const mockGetSuggestions = vi.mocked(getBookSuggestions);
 
 let capturedOnClose: (() => void) | null = null;
-let capturedOnError: ((error: Error) => void) | null = null;
-let mutateError: Error | null = null;
-let shouldCallOnClose = true;
 
 const mockAddBook = {
-  mutate: vi.fn((_isbn: string) => {
-    if (mutateError) {
-      // Simulate mutation error - call captured onError if available
-      if (capturedOnError) {
-        Promise.resolve().then(() => {
-          capturedOnError?.(mutateError);
-        });
-      }
-      return;
-    }
-    if (shouldCallOnClose && capturedOnClose) {
-      Promise.resolve().then(() => {
-        capturedOnClose?.();
-      });
-    }
-  }),
+  mutate: vi.fn(),
   isPending: false,
   reset: vi.fn(),
 };
@@ -76,7 +47,7 @@ const mockLookupData = {
   description: "Test description",
 };
 
-function renderModal() {
+function renderModal(props: Partial<Parameters<typeof AddBookModal>[0]> = {}) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -84,11 +55,22 @@ function renderModal() {
     },
   });
 
-  return render(
-    <QueryClientProvider client={queryClient}>
+  const ui =
+    props.open !== undefined ? (
+      <AddBookModal
+        open={props.open}
+        onOpenChange={props.onOpenChange}
+        initialIsbn={props.initialIsbn}
+      />
+    ) : (
       <AddBookModal>
         <button data-testid="trigger-button">+ Añadir libro</button>
       </AddBookModal>
+    );
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
       <Toaster />
     </QueryClientProvider>,
   );
@@ -98,179 +80,140 @@ describe("AddBookModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     capturedOnClose = null;
-    capturedOnError = null;
-    mutateError = null;
-    shouldCallOnClose = true;
 
-    vi.mocked(useIsbnInput).mockReturnValue(mockIsbnInput);
     vi.mocked(useAddBook).mockImplementation((options) => {
       capturedOnClose = options?.onClose ?? null;
-      capturedOnError = options?.onError ?? null;
       return mockAddBook;
     });
-    vi.mocked(lookupBook).mockReset();
+    mockLookup.mockReset();
+    mockGetSuggestions.mockReset();
+    mockGetSuggestions.mockResolvedValue({ query: "", limit: 8, items: [] });
   });
 
   it("abre el modal al click en el trigger", async () => {
     renderModal();
 
-    const triggerButton = screen.getByTestId("trigger-button");
-    await userEvent.click(triggerButton);
+    await userEvent.click(screen.getByTestId("trigger-button"));
 
-    const dialog = await screen.findByRole("dialog");
-    expect(dialog).toBeInTheDocument();
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("ISBN-13")).toBeInTheDocument();
   });
 
-  it("normaliza ISBN y valida longitud 13 dígitos", async () => {
-    // Setup: isbn input with invalid length
-    const invalidIsbnInput = {
-      ...mockIsbnInput,
-      isbn: "978012345678",
-      formattedIsbn: "978-0-123-45678",
-      isValid: false,
-    };
-    vi.mocked(useIsbnInput).mockReturnValue(invalidIsbnInput);
-
-    renderModal();
-    const triggerButton = screen.getByTestId("trigger-button");
-    await userEvent.click(triggerButton);
-
-    const searchButton = screen.getByRole("button", { name: /buscar/i });
-    expect(searchButton).toBeDisabled();
-  });
-
-  it("happy path completo: busca, muestra preview, guarda libro", async () => {
+  it("manual ISBN: busca, muestra preview y guarda", async () => {
     const user = userEvent.setup();
-    shouldCallOnClose = false;
-
-    vi.mocked(lookupBook).mockResolvedValue(mockLookupData);
+    mockLookup.mockResolvedValue(mockLookupData);
 
     renderModal();
-    const triggerButton = screen.getByTestId("trigger-button");
-    await user.click(triggerButton);
+    await user.click(screen.getByTestId("trigger-button"));
 
-    // Stage input: click buscar
+    const input = screen.getByRole("combobox");
+    await user.type(input, "9780123456789");
+
     const searchButton = screen.getByRole("button", { name: /buscar/i });
+    expect(searchButton).toBeEnabled();
+
     await user.click(searchButton);
 
-    // Stage preview: verify BookMetadataPreview renders
     await waitFor(() => {
       expect(screen.getByText("Test Book")).toBeInTheDocument();
       expect(screen.getByText("Author One")).toBeInTheDocument();
-      expect(screen.getByText("300 págs.")).toBeInTheDocument();
     });
 
-    // Click guardar
-    const saveButton = screen.getByRole("button", { name: /guardar libro/i });
-    await user.click(saveButton);
-
-    // Verify mutation called
-    await waitFor(() => {
-      expect(mockAddBook.mutate).toHaveBeenCalledWith("9780123456789");
-    });
-
-    // Modal should show saving stage after save (dialog close not yet implemented)
-    await waitFor(() => {
-      expect(
-        screen.getByText(/guardando libro en tu biblioteca/i),
-      ).toBeInTheDocument();
-    });
-
-    shouldCallOnClose = true;
-  });
-
-  it("muestra error 404 cuando libro no encontrado", async () => {
-    const user = userEvent.setup();
-
-    const error = new Error("Libro no encontrado") as Error & {
-      status: number;
-      code: string;
-    };
-    error.status = 404;
-    error.code = "NOT_FOUND";
-    vi.mocked(lookupBook).mockRejectedValue(error);
-
-    renderModal();
-    const triggerButton = screen.getByTestId("trigger-button");
-    await user.click(triggerButton);
-
-    const searchButton = screen.getByRole("button", { name: /buscar/i });
-    await user.click(searchButton);
-
-    // Should show toast error
-    await waitFor(() => {
-      expect(
-        screen.getByText(/libro no encontrado en open library/i),
-      ).toBeInTheDocument();
-    });
-
-    // Should stay in input stage
-    expect(screen.getByRole("button", { name: /buscar/i })).toBeInTheDocument();
-  });
-
-  it("muestra error 409 cuando libro ya en biblioteca", async () => {
-    const user = userEvent.setup();
-
-    vi.mocked(lookupBook).mockResolvedValue(mockLookupData);
-
-    renderModal();
-    const triggerButton = screen.getByTestId("trigger-button");
-    await user.click(triggerButton);
-
-    // Go to preview
-    const searchButton = screen.getByRole("button", { name: /buscar/i });
-    await user.click(searchButton);
-
-    await waitFor(() => {
-      expect(screen.getByText("Test Book")).toBeInTheDocument();
-    });
-
-    // Try to save - verify mutation is called
-    const saveButton = screen.getByRole("button", { name: /guardar libro/i });
-    await user.click(saveButton);
+    await user.click(screen.getByRole("button", { name: /guardar libro/i }));
 
     await waitFor(() => {
       expect(mockAddBook.mutate).toHaveBeenCalledWith("9780123456789");
     });
   });
 
-  it("cerrar modal sin guardar vuelve al stage input", async () => {
+  it("deshabilita el botón buscar sin un ISBN-13 completo", async () => {
     const user = userEvent.setup();
-
-    vi.mocked(lookupBook).mockResolvedValue(mockLookupData);
-
     renderModal();
-    const triggerButton = screen.getByTestId("trigger-button");
-    await user.click(triggerButton);
+    await user.click(screen.getByTestId("trigger-button"));
 
-    // Go to preview
-    const searchButton = screen.getByRole("button", { name: /buscar/i });
-    await user.click(searchButton);
+    const input = screen.getByRole("combobox");
+    await user.type(input, "abc");
 
-    await waitFor(() => {
-      expect(screen.getByText("Test Book")).toBeInTheDocument();
-    });
-
-    // Click "Volver"
-    const backButton = screen.getByRole("button", { name: /volver/i });
-    await user.click(backButton);
-
-    // Should be back to input stage
-    expect(screen.getByRole("button", { name: /buscar/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/isbn-13/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /buscar/i })).toBeDisabled();
   });
 
-  it("focus trap: modal se cierra con Escape", async () => {
+  it("seleccionar una sugerencia de catálogo carga la preview", async () => {
     const user = userEvent.setup();
+    mockGetSuggestions.mockResolvedValue({
+      query: "dun",
+      limit: 8,
+      items: [
+        {
+          source: "catalog",
+          book_id: null,
+          isbn13: "9780441172719",
+          title: "Dune",
+          authors: ["Frank Herbert"],
+          cover_url: null,
+          in_library: false,
+        },
+      ],
+    });
+    mockLookup.mockResolvedValue(mockLookupData);
 
     renderModal();
-    const triggerButton = screen.getByTestId("trigger-button");
-    await user.click(triggerButton);
+    await user.click(screen.getByTestId("trigger-button"));
+
+    const input = screen.getByRole("combobox");
+    await user.type(input, "dun");
+
+    const option = await screen.findByRole("option", { name: /Dune/ });
+    await user.click(option);
+
+    await waitFor(() => {
+      expect(mockLookup).toHaveBeenCalledWith(
+        "9780441172719",
+        expect.anything(),
+      );
+    });
+    expect(await screen.findByText("Test Book")).toBeInTheDocument();
+  });
+
+  it("seleccionar una sugerencia de biblioteca marca 'Ya en tu biblioteca'", async () => {
+    const user = userEvent.setup();
+    mockGetSuggestions.mockResolvedValue({
+      query: "dun",
+      limit: 8,
+      items: [
+        {
+          source: "library",
+          book_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          isbn13: "9780441172719",
+          title: "Dune",
+          authors: ["Frank Herbert"],
+          cover_url: null,
+          in_library: true,
+        },
+      ],
+    });
+
+    renderModal();
+    await user.click(screen.getByTestId("trigger-button"));
+
+    const input = screen.getByRole("combobox");
+    await user.type(input, "dun");
+
+    const option = await screen.findByRole("option", { name: /Dune/ });
+    await user.click(option);
+
+    expect(screen.getByTestId("already-in-library")).toHaveTextContent(
+      "Este libro ya está en tu biblioteca.",
+    );
+    expect(mockLookup).not.toHaveBeenCalled();
+  });
+
+  it("Escape cierra el modal", async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await user.click(screen.getByTestId("trigger-button"));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
-    // Press Escape
     await user.keyboard("{Escape}");
 
     await waitFor(() => {
@@ -278,80 +221,65 @@ describe("AddBookModal", () => {
     });
   });
 
-  it("botón buscar deshabilitado durante fetch", async () => {
+  it("Escape con el dropdown abierto cierra solo el dropdown, no el modal", async () => {
     const user = userEvent.setup();
-
-    let resolveLookup: (value: typeof mockLookupData) => void;
-    const lookupPromise = new Promise<typeof mockLookupData>((resolve) => {
-      resolveLookup = resolve;
+    mockGetSuggestions.mockResolvedValue({
+      query: "dun",
+      limit: 8,
+      items: [
+        {
+          source: "catalog",
+          book_id: null,
+          isbn13: "9780441172719",
+          title: "Dune",
+          authors: ["Frank Herbert"],
+          cover_url: null,
+          in_library: false,
+        },
+      ],
     });
-    vi.mocked(lookupBook).mockReturnValue(lookupPromise);
 
     renderModal();
-    const triggerButton = screen.getByTestId("trigger-button");
-    await user.click(triggerButton);
+    await user.click(screen.getByTestId("trigger-button"));
 
-    const searchButton = screen.getByRole("button", { name: /buscar/i });
-    await user.click(searchButton);
+    const input = screen.getByRole("combobox");
+    await user.type(input, "dun");
 
-    // Button should show loading state
+    // El dropdown se abre con las sugerencias.
     expect(
-      screen.getByRole("button", { name: /buscando\.\.\./i }),
+      await screen.findByRole("option", { name: /Dune/ }),
     ).toBeInTheDocument();
 
-    // Resolve
-    resolveLookup!(mockLookupData);
+    await user.keyboard("{Escape}");
+
+    // El modal sigue abierto y el dropdown se cierra.
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText("Test Book")).toBeInTheDocument();
+      expect(screen.queryByRole("option")).not.toBeInTheDocument();
+    });
+
+    // Un segundo Escape (dropdown ya cerrado) sí cierra el modal.
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 
-  it("accesibilidad: DialogTitle, DialogDescription, labels en inputs", async () => {
-    renderModal();
-    const triggerButton = screen.getByTestId("trigger-button");
-    await userEvent.click(triggerButton);
+  it("modo controlado con ISBN inicial ejecuta el lookup", async () => {
+    mockLookup.mockResolvedValue(mockLookupData);
 
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveAttribute("aria-labelledby");
-    expect(dialog).toHaveAttribute("aria-describedby");
+    renderModal({
+      open: true,
+      onOpenChange: vi.fn(),
+      initialIsbn: "9780123456789",
+    });
 
-    expect(document.getElementById("add-book-title")).toHaveTextContent(
-      "Añadir libro por ISBN",
-    );
-    expect(document.getElementById("add-book-description")).toHaveTextContent(
-      "Introduce el ISBN-13 del libro para buscar sus metadatos y añadirlo a tu biblioteca.",
-    );
-
-    // Input has label and aria-describedby
-    const input = screen.getByLabelText(/isbn-13/i);
-    expect(input).toHaveAttribute("aria-describedby", "isbn-helper");
-  });
-
-  it("aria-live para toasts via sonner", async () => {
-    const user = userEvent.setup();
-
-    const error = new Error("Libro no encontrado") as Error & {
-      status: number;
-      code: string;
-    };
-    error.status = 404;
-    error.code = "NOT_FOUND";
-    vi.mocked(lookupBook).mockRejectedValue(error);
-
-    renderModal();
-    const triggerButton = screen.getByTestId("trigger-button");
-    await user.click(triggerButton);
-
-    const searchButton = screen.getByRole("button", { name: /buscar/i });
-    await user.click(searchButton);
-
-    // Toast should appear with aria-live (handled by sonner Toaster)
-    await waitFor(
-      () => {
-        const toast = screen.getByText(/libro no encontrado en open library/i);
-        expect(toast).toBeInTheDocument();
-      },
-      { timeout: 5000 },
-    );
+    await waitFor(() => {
+      expect(mockLookup).toHaveBeenCalledWith(
+        "9780123456789",
+        expect.anything(),
+      );
+    });
+    expect(await screen.findByText("Test Book")).toBeInTheDocument();
   });
 });

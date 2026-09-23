@@ -1,6 +1,65 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BookHeader } from "../BookHeader";
+
+vi.mock("@/lib/api/books", () => ({
+  deleteBook: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Preferencias controlables por test (feature 022).
+const confirmState = vi.hoisted(() => ({ confirmDeletions: true }));
+
+vi.mock("@/contexts/SettingsContext", () => ({
+  useSettings: () => ({
+    settings: {
+      reader: { confirmDeletions: confirmState.confirmDeletions },
+      notifications: {
+        errors: true,
+        vectorizationDone: true,
+        recommendations: true,
+        account: true,
+      },
+      chat: { respondInInterfaceLanguage: true },
+      privacy: { useNotesForSearch: true },
+      language: "es",
+      theme: "system",
+    },
+    language: "es",
+    theme: "system",
+    resolvedTheme: "system",
+    setTheme: vi.fn(),
+    setLanguage: vi.fn(),
+    updateReader: vi.fn(),
+    updateChat: vi.fn(),
+    updateNotifications: vi.fn(),
+    updatePrivacy: vi.fn(),
+    isAccountLoaded: true,
+    accountError: null,
+    reducedMotion: false,
+    loadChatHistory: vi.fn(),
+    saveChatHistory: vi.fn(),
+    clearChatHistory: vi.fn(),
+    restoreDefaults: vi.fn(),
+  }),
+}));
+
+import { deleteBook } from "@/lib/api/books";
+
+const mockedDeleteBook = vi.mocked(deleteBook);
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+});
+
+function renderHeader(book: typeof mockBook) {
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <BookHeader book={book} />
+    </QueryClientProvider>,
+  );
+}
 
 const mockBook = {
   id: "book-1",
@@ -23,8 +82,14 @@ const mockBook = {
 };
 
 describe("BookHeader", () => {
+  beforeEach(() => {
+    mockedDeleteBook.mockReset();
+    mockedDeleteBook.mockResolvedValue(undefined);
+    confirmState.confirmDeletions = true;
+  });
+
   it("renders cover image with priority (fetchpriority=high) and correct aspect ratio", () => {
-    render(<BookHeader book={mockBook} />);
+    renderHeader(mockBook);
 
     const img = screen.getByAltText("Portada de Test Book Title");
     expect(img).toBeInTheDocument();
@@ -35,20 +100,20 @@ describe("BookHeader", () => {
 
   it("renders fallback when no cover_url", () => {
     const bookNoCover = { ...mockBook, cover_url: null };
-    render(<BookHeader book={bookNoCover} />);
+    renderHeader(bookNoCover);
 
     expect(screen.getByText("Sin portada")).toBeInTheDocument();
   });
 
   it("renders title and authors", () => {
-    render(<BookHeader book={mockBook} />);
+    renderHeader(mockBook);
 
     expect(screen.getByText("Test Book Title")).toBeInTheDocument();
     expect(screen.getByText("Author One, Author Two")).toBeInTheDocument();
   });
 
   it("renders publisher, published_date, page_count, and ISBN", () => {
-    render(<BookHeader book={mockBook} />);
+    renderHeader(mockBook);
 
     // All text values are present (some split across text nodes and spans)
     expect(screen.getByText("Test Publisher")).toBeInTheDocument();
@@ -63,13 +128,13 @@ describe("BookHeader", () => {
   });
 
   it("renders status badge with correct label", () => {
-    render(<BookHeader book={mockBook} />);
+    renderHeader(mockBook);
 
     expect(screen.getByText("Leyendo")).toBeInTheDocument();
   });
 
   it("renders rating stars with correct fill", () => {
-    render(<BookHeader book={mockBook} />);
+    renderHeader(mockBook);
 
     // The rating container has aria-label, stars are inside
     const ratingContainer = screen.getByLabelText("Rating: 4 de 5");
@@ -85,16 +150,42 @@ describe("BookHeader", () => {
       status: "want_to_read" as const,
       rating: null,
     };
-    render(<BookHeader book={bookWantToRead} />);
+    renderHeader(bookWantToRead);
 
-    expect(screen.getByText("Por leer")).toBeInTheDocument();
+    expect(screen.getByText("Quiero leer")).toBeInTheDocument();
     expect(screen.queryByLabelText(/rating/i)).not.toBeInTheDocument();
   });
 
   it("renders correct status label for read", () => {
     const bookRead = { ...mockBook, status: "read" as const };
-    render(<BookHeader book={bookRead} />);
+    renderHeader(bookRead);
 
     expect(screen.getByText("Leído")).toBeInTheDocument();
+  });
+
+  it("pide confirmación antes de eliminar si confirmDeletions está activada", async () => {
+    confirmState.confirmDeletions = true;
+    const user = userEvent.setup();
+    renderHeader(mockBook);
+
+    // El trigger abre el diálogo; deleteBook aún no se llama.
+    await user.click(screen.getByRole("button", { name: /eliminar libro/i }));
+    expect(
+      screen.getByText(/eliminar este libro y todas sus notas/i),
+    ).toBeInTheDocument();
+    expect(mockedDeleteBook).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /^eliminar$/i }));
+    await waitFor(() => expect(mockedDeleteBook).toHaveBeenCalledTimes(1));
+  });
+
+  it("elimina directamente sin confirmación si confirmDeletions está desactivada", async () => {
+    confirmState.confirmDeletions = false;
+    const user = userEvent.setup();
+    renderHeader(mockBook);
+
+    await user.click(screen.getByRole("button", { name: /eliminar libro/i }));
+
+    await waitFor(() => expect(mockedDeleteBook).toHaveBeenCalledTimes(1));
   });
 });

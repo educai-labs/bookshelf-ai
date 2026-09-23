@@ -168,7 +168,7 @@ describe("streamChat", () => {
     });
   });
 
-  it("lanza error amigable cuando falta GEMINI_API_KEY", async () => {
+  it("lanza ApiError con el código del backend cuando falla la petición", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -189,6 +189,24 @@ describe("streamChat", () => {
       for await (const _chunk of streamChat({ query: "hola" })) {
         // noop
       }
-    }).rejects.toThrow("El chat no está configurado");
+    }).rejects.toMatchObject({ code: "GEMINI_KEY_MISSING", status: 503 });
+  });
+
+  it("lanza ApiError NO_STREAM_BODY cuando no hay cuerpo legible", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(null, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        }),
+      ),
+    );
+
+    await expect(async () => {
+      for await (const _chunk of streamChat({ query: "hola" })) {
+        // noop
+      }
+    }).rejects.toMatchObject({ code: "NO_STREAM_BODY" });
   });
 });

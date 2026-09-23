@@ -2,7 +2,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { NoteEditor } from "../NoteEditor";
 
 // Mock dependencies
@@ -12,6 +12,43 @@ vi.mock("@/lib/api/books", () => ({
 
 vi.mock("@/utils/markdown", () => ({
   insertAtCursor: vi.fn(),
+}));
+
+// Preferencias controlables por test (feature 022).
+const notifState = vi.hoisted(() => ({ errors: true }));
+
+vi.mock("@/contexts/SettingsContext", () => ({
+  useSettings: () => ({
+    settings: {
+      notifications: {
+        errors: notifState.errors,
+        vectorizationDone: true,
+        recommendations: true,
+        account: true,
+      },
+      reader: { confirmDeletions: true },
+      chat: { respondInInterfaceLanguage: true },
+      privacy: { useNotesForSearch: true },
+      language: "es",
+      theme: "system",
+    },
+    language: "es",
+    theme: "system",
+    resolvedTheme: "system",
+    setTheme: vi.fn(),
+    setLanguage: vi.fn(),
+    updateReader: vi.fn(),
+    updateChat: vi.fn(),
+    updateNotifications: vi.fn(),
+    updatePrivacy: vi.fn(),
+    isAccountLoaded: true,
+    accountError: null,
+    reducedMotion: false,
+    loadChatHistory: vi.fn(),
+    saveChatHistory: vi.fn(),
+    clearChatHistory: vi.fn(),
+    restoreDefaults: vi.fn(),
+  }),
 }));
 
 import { createNote } from "@/lib/api/books";
@@ -46,6 +83,7 @@ describe("NoteEditor", () => {
       chunk_index: 0,
       created_at: "2024-01-01T00:00:00Z",
     });
+    notifState.errors = true;
   });
 
   it("renders toolbar with markdown buttons", () => {
@@ -230,6 +268,44 @@ describe("NoteEditor", () => {
         screen.getByText(/error al guardar: failed to create note/i),
       ).toBeInTheDocument();
     });
+  });
+
+  it("no muestra toast de error si notifications.errors está desactivada", async () => {
+    notifState.errors = false;
+    const errorSpy = vi.spyOn(toast, "error").mockImplementation(() => "id");
+    const user = userEvent.setup();
+
+    // Promesa diferida para controlar el momento del fallo (determinista).
+    let rejectMutation: (err: Error) => void;
+    vi.mocked(createNote).mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectMutation = reject;
+      }),
+    );
+
+    renderEditor();
+
+    const textarea = screen.getByPlaceholderText(
+      /escribe tu nota en markdown/i,
+    );
+    await user.type(textarea, "Test note");
+    await user.click(screen.getByRole("button", { name: /guardar nota/i }));
+
+    // Pendiente → botón "Guardando...".
+    expect(
+      screen.getByRole("button", { name: /guardando/i }),
+    ).toBeInTheDocument();
+
+    rejectMutation!(new Error("Failed to create note"));
+
+    // `onError` se ejecuta (vuelve a "Guardar nota") pero sin toast.
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /guardar nota/i }),
+      ).toBeInTheDocument();
+    });
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it("renders sanitized HTML in preview (removes script tags)", async () => {

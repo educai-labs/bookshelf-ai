@@ -1,5 +1,5 @@
 # AGENTS.md — Flujo Spec-Driven Development (SDD)
-**Última spec creada/actualizada**: `spec/features/015-book-detail-reading-sheet/spec.md` (2026-08-24)
+
 
 > Esta plantilla documenta el flujo de trabajo obligatorio para el proyecto. Copia este archivo a la raíz de tu proyecto como `AGENTS.md` y adáptalo si es necesario.
 
@@ -224,6 +224,26 @@ Todos los agentes usan `question` con esta estructura:
 | `<comando build>` | Compila para producción. Debe generar artefacto válido. |
 
 El implementador **debe** ejecutar los tres (si existen) tras cada tarea relevante y al final.
+
+---
+
+## Convención de migraciones (Feature 024)
+
+Toda feature que cree o aplique una migración de `supabase/migrations/` **debe**
+incluir en su `tasks.md` dos tareas con evidencia explícita de su resultado:
+
+- [ ] Aplicar al remoto: `supabase db push --include-all` (evidencia: salida del comando).
+- [ ] Verificar el esquema remoto: `npm run verify:schema` (evidencia: `exit 0` y salida objeto a objeto).
+
+Reglas:
+
+- **Nunca** modificar una migración ya aplicada (`supabase/migrations/` es append-only).
+  Ante drift, aplicar las migraciones pendientes o crear una migración nueva numerada.
+- **Nunca** usar `supabase db reset` ni auto-reparar desde el código: el remedio es
+  siempre manual y explícito.
+- Marcar una migración como `[x]` en `tasks.md` sin haberla aplicado al remoto es un
+  fallo de proceso: `npm run verify:schema` lo detecta (`exit 1`, con el objeto
+  faltante, su tipo y el remedio).
 
 ---
 

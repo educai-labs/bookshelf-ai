@@ -39,3 +39,15 @@ class ChatRequest(BaseModel):
         default=None,
         description="Modo de contexto: 'book' (libro) o 'rag' (biblioteca global)",
     )
+    language: Literal["es", "en"] | None = Field(
+        default=None,
+        description="Idioma de la interfaz para adaptar la respuesta (feature 022)",
+    )
+    use_notes: bool | None = Field(
+        default=True,
+        description=(
+            "Incluir las notas del usuario en el contexto (book/RAG). Refleja la "
+            "preferencia 'usar notas para búsqueda/chat' (feature 022). False "
+            "omite las notas sin afectar el aislamiento por user_id."
+        ),
+    )

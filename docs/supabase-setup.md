@@ -204,3 +204,78 @@ reversión manual, no se ejecuta automáticamente).
 
    Ambas deben terminar con `RESULTADO: TODO OK ✅ (exit 0)` y reportar la tabla `books`
    accesible (ya no PGRST205).
+
+---
+
+## Verificar el esquema remoto (Feature 024)
+
+El comando `npm run verify:schema` comprueba, contra el proyecto Supabase **remoto**,
+que el esquema aplicado coincide con el esperado por el repositorio. Detecta el
+**drift de migraciones** (migración marcada `[x]` en su `tasks.md` pero no aplicada
+al remoto) y lo convierte en un fallo claro con remedio, en lugar de un 500 genérico
+en producción.
+
+```bash
+npm run verify:schema
+```
+
+### Variables requeridas
+
+Se cargan desde el entorno o, si existe, desde `.env.local` (mismo loader que
+`verify-supabase.py`):
+
+| Variable | Rol | Obligatoria |
+|----------|-----|-------------|
+| `SUPABASE_URL` (o `NEXT_PUBLIC_SUPABASE_URL`) | URL del proyecto (PostgREST) | Sí |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave service_role (solo backend/MCP) | Sí |
+| `SUPABASE_DB_URL` | Cadena de conexión Postgres (introspección del catálogo) | Sí (solo para extensión + índice) |
+
+Si falta `SUPABASE_URL` o `SUPABASE_SERVICE_ROLE_KEY`, el script termina con
+`exit 1` **antes de conectar** e indica qué variables faltan y dónde definirlas.
+Si falta `SUPABASE_DB_URL`, la extensión `vector` y el índice HNSW se marcan como
+"no verificados" (exit 1).
+
+### Objetos verificados
+
+| Objeto | Tipo | Cómo se comprueba |
+|--------|------|-------------------|
+| `books` | tabla | PostgREST (`select` con service_role; `PGRST205` = ausente) |
+| `book_notes` | tabla | idem |
+| `account_preferences` | tabla | idem |
+| `match_book_notes` | RPC | PostgREST (`rpc` con service_role; `PGRST202` = ausente) |
+| `vector` | extensión | SQL (`pg_extension`) vía `SUPABASE_DB_URL` |
+| `idx_book_notes_embedding_hnsw` | índice | SQL (`pg_indexes`) vía `SUPABASE_DB_URL` |
+
+### Salida esperada y códigos de salida
+
+Con todos los objetos presentes, imprime un `✓` por objeto y termina:
+
+```
+RESULTADO: TODO OK ✅ (exit 0)
+```
+
+Exit codes:
+
+- `0` = todos los objetos presentes.
+- `1` = cualquier faltante, error de conexión/red o error de autenticación.
+
+### Cómo interpretar cada fallo (exit 1)
+
+- **`✗ ... — AUSENTE`** (objeto ausente): drift de migraciones. El resumen lista
+  el tipo y el nombre del faltante. Remedio:
+
+  ```bash
+  supabase db push --include-all
+  npm run verify:schema
+  ```
+
+- **`✗ ... — error de conexión/red`**: URL inalcanzable o red caída. Verifica
+  `SUPABASE_URL` y la conectividad.
+- **`✗ ... — error de autenticación (HTTP 401)`**: `SUPABASE_SERVICE_ROLE_KEY`
+  inválida o caducada. Regenera la clave en Dashboard → Settings → API.
+- **`✗ ... — no verificado`**: falta `SUPABASE_DB_URL` (o `psycopg` no instalado),
+  por lo que la extensión y el índice no pudieron comprobarse.
+
+El script **nunca** imprime la service_role key ni otros secretos, ni la URL
+completa del proyecto (el `project-ref` se redacta). Tampoco aplica migraciones:
+el remedio es siempre manual y explícito.

@@ -1,0 +1,58 @@
+---
+estado: "hecho"
+---
+
+# 022 · Client Settings — Tareas
+
+- [x] Definir los tipos TypeScript de todas las preferencias, enums y defaults en `apps/web/src/types/settings.ts`.
+- [x] Crear los esquemas Zod de preferencias y respuestas en `apps/web/src/lib/validations/settings.ts`.
+- [x] Implementar los defaults fijados en el plan, incluyendo detección de idioma del navegador con fallback a `es`.
+- [x] Implementar la lectura, escritura y eliminación segura de preferencias en `apps/web/src/lib/settings/storage.ts`.
+- [x] Implementar la normalización y restauración completa de defaults en `apps/web/src/lib/settings/defaults.ts`.
+- [x] Crear `SettingsProvider` y `useSettings` en `apps/web/src/contexts/SettingsContext.tsx`.
+- [x] Centralizar en el contexto las preferencias locales, de cuenta y las operaciones de historial temporal del chat.
+- [x] Integrar `next-themes` para aplicar `light`, `dark` y `system` con estrategia `class`, sin recarga ni `router.refresh`.
+- [x] Implementar la suscripción a `prefers-color-scheme` y `prefers-reduced-motion`.
+- [x] Integrar `SettingsProvider` en `apps/web/src/app/providers.tsx` y conectarlo con el layout autenticado.
+- [x] Implementar la carga de preferencias de cuenta al iniciar sesión y la sincronización de cambios sin aplicar estados parciales inválidos.
+- [x] Implementar la limpieza condicional del historial de chat al cerrar sesión sin persistir credenciales, tokens, JWT, API keys ni `service_role`.
+- [x] Crear el cliente API de settings en `apps/web/src/lib/api/settings.ts` con autenticación y validación Zod de respuestas.
+- [x] Crear los hooks React Query de settings en `apps/web/src/lib/hooks/useSettings.ts` para carga, mutaciones, debounce e invalidación.
+- [x] Implementar en los hooks las acciones de cerrar sesión, eliminar cuenta, exportar libros y notas y eliminar el historial local.
+- [x] Crear `supabase/migrations/006_account_preferences.sql` con preferencias JSONB agrupadas, `user_id`, timestamps y restricciones.
+- [x] Añadir RLS a la tabla de preferencias para aislar lectura y modificación por `user_id` y aplicar defaults a usuarios nuevos.
+- [x] Crear los modelos Pydantic v2 de preferencias, respuestas y errores estructurados en `apps/api/app/models/settings.py`.
+- [x] Implementar los endpoints autenticados de lectura y actualización de preferencias en `apps/api/app/api/v1/endpoints/settings.py`.
+- [x] Registrar el router de settings en `apps/api/app/api/v1/router.py`.
+- [x] Validar en backend enums, rangos y campos desconocidos y devolver errores `{ code, message, field? }` mediante `HTTPException.detail`.
+- [x] Implementar server-side las acciones autenticadas de exportación, eliminación de cuenta y privacidad sin aceptar `user_id` del cliente.
+- [x] Construir la página responsive `apps/web/src/app/(dashboard)/settings/page.tsx`.
+- [x] Crear los componentes de settings para apariencia/idioma, lector, chat, notificaciones, privacidad/datos y accesibilidad bajo `apps/web/src/components/settings/`.
+- [x] Implementar los controles de tema e idioma con aplicación inmediata y persistencia.
+- [x] Implementar los controles de preferencias del lector, sus rangos de validación y la acción de confirmar borrados.
+- [x] Implementar los controles de preferencias del chat, incluido el historial en `sessionStorage` y sin selector de modelo de IA.
+- [x] Implementar los controles de notificaciones con mensajes claros y toasts no bloqueantes.
+- [x] Implementar las acciones de privacidad, consulta de datos almacenados, restauración completa de preferencias y confirmaciones destructivas.
+- [x] Aplicar navegación por teclado, foco visible, etiquetas y descripciones ARIA, alt text de portadas, contraste y estados no dependientes solo del color.
+- [x] Verificar el layout de settings en viewport menor de 640px y en escritorio.
+- [x] Crear diccionarios tipados es/en y utilidades de traducción en `apps/web/src/lib/i18n/`.
+- [x] Crear utilidades de fechas y números basadas en `Intl.DateTimeFormat` e `Intl.NumberFormat` en `apps/web/src/lib/formatters/`.
+- [x] Sustituir los textos visibles de las vistas y componentes de las features 011–017 por claves de los diccionarios es/en.
+- [x] Adaptar los textos del chat, errores, formularios, modales, estados vacíos, botones, menús, toasts y badges al idioma activo.
+- [x] Adaptar `ChatPage.tsx` para consumir únicamente `useSettings` en modo inicial, idioma, historial, visibilidad, limpieza y recomendaciones.
+- [x] Adaptar los controles de lectura de `apps/web/src/components/book-detail/` para consumir únicamente `useSettings`.
+- [x] Auditar dashboard, autenticación y ficha de libro en light/dark, reduced motion, contraste, estados accesibles y alt text.
+- [x] Añadir tests del contexto, storage, defaults e i18n en `apps/web/src/contexts/SettingsContext.test.tsx` y `apps/web/src/lib/settings/*.test.ts`.
+- [x] Añadir tests frontend de settings, persistencia por storage, idioma del navegador, restauración, cambios sin recarga y no-secrets.
+- [x] Añadir tests frontend de las vistas 011–017 para cobertura de traducciones, formato, accesibilidad, tema y preferencias del chat/lector.
+- [x] Añadir `apps/api/tests/test_settings.py` y tests de exportación, eliminación, validación backend y aislamiento por `user_id`.
+- [x] Verificar en tests RLS que un usuario no puede leer, modificar ni exportar preferencias o notas de otro usuario.
+- [x] Ejecutar `cd apps/web && npm run test` y corregir los fallos relacionados con la feature.
+- [x] Ejecutar `cd apps/web && npm run lint` sin warnings.
+- [x] Ejecutar `cd apps/web && npm run build` y verificar que genera un artefacto válido.
+- [x] Ejecutar `cd apps/api && pytest -v` con la suite backend completa.
+- [x] Ejecutar `cd apps/api && ruff check . && black --check .` sin errores.
+- [x] Ejecutar la verificación que recorre `localStorage` y `sessionStorage` y falla ante secretos, tokens, JWT, API keys o `service_role`.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md` (lo hace el agente `roadmap` tras la aprobación del revisor).

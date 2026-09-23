@@ -85,6 +85,11 @@ class FakeQueryBuilder:
         new._payload = payload
         return new
 
+    def delete(self):
+        new = self._clone()
+        new._op = "delete"
+        return new
+
     def eq(self, column, value):
         self._filters.append(("eq", column, value))
         return self
@@ -144,6 +149,11 @@ class FakeSupabase:
             row.setdefault("created_at", _now())
             table[row["id"]] = row
             rows = [row]
+
+        if builder._op == "delete":
+            for r in rows:
+                table.pop(r["id"], None)
+            return FakeResponse(data=rows)
 
         if builder._order is not None:
             column, desc = builder._order
@@ -471,3 +481,54 @@ async def test_background_task_enqueued(client, fake_db, monkeypatch):
     assert args[1] == USER_ID
     assert str(args[2]) == libro["id"]
     assert args[3] == "nota a vectorizar"
+
+
+# ---------------------------------------------------------------------------
+# DELETE /books/{book_id}/notes/{note_id}
+# ---------------------------------------------------------------------------
+
+
+async def test_delete_note_success(client, fake_db):
+    """Criterio: borra la nota propia → 204 y desaparece del store."""
+    libro = _seed_book(fake_db)
+    nota = _seed_note(fake_db, libro["id"])
+
+    resp = await client.delete(f"/api/v1/books/{libro['id']}/notes/{nota['id']}")
+
+    assert resp.status_code == 204
+    assert nota["id"] not in fake_db.notes
+
+
+async def test_delete_note_ajena_404(client, fake_db):
+    """Ownership: no borra una nota de otro usuario → 404 (y permanece)."""
+    libro = _seed_book(fake_db)
+    nota_ajena = _seed_note(fake_db, libro["id"], user_id=OTRO_USER_ID)
+
+    resp = await client.delete(f"/api/v1/books/{libro['id']}/notes/{nota_ajena['id']}")
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["code"] == "NOTE_NOT_FOUND"
+    assert nota_ajena["id"] in fake_db.notes
+
+
+async def test_delete_note_inexistente_404(client, fake_db):
+    """Nota inexistente → 404 NOTE_NOT_FOUND."""
+    libro = _seed_book(fake_db)
+
+    resp = await client.delete(
+        f"/api/v1/books/{libro['id']}/notes/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    )
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["code"] == "NOTE_NOT_FOUND"
+
+
+async def test_delete_note_libro_ajeno_404(client, fake_db):
+    """Ownership: libro de otro usuario → 404 BOOK_NOT_FOUND (no 404 de nota)."""
+    libro_ajeno = _seed_book(fake_db, user_id=OTRO_USER_ID)
+    nota = _seed_note(fake_db, libro_ajeno["id"], user_id=OTRO_USER_ID)
+
+    resp = await client.delete(f"/api/v1/books/{libro_ajeno['id']}/notes/{nota['id']}")
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["code"] == "BOOK_NOT_FOUND"

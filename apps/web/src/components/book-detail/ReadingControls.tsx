@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { Calendar, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Book, BookStatus } from "@/types/book";
@@ -24,20 +23,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
+import { useSettings } from "@/contexts/SettingsContext";
+import { formatDate } from "@/lib/formatters";
 
 interface ReadingControlsProps {
   book: Book;
 }
 
-const STATUS_OPTIONS: { value: BookStatus; label: string }[] = [
-  { value: "want_to_read", label: "Por leer" },
-  { value: "reading", label: "Leyendo" },
-  { value: "read", label: "Leído" },
-];
-
 export function ReadingControls({ book }: ReadingControlsProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { t, language } = useTranslation();
+  const { settings } = useSettings();
   const [localStatus, setLocalStatus] = useState<BookStatus>(book.status);
   const [localRating, setLocalRating] = useState<number | null>(book.rating);
   const [localStartedAt, setLocalStartedAt] = useState<string | null>(
@@ -49,11 +47,17 @@ export function ReadingControls({ book }: ReadingControlsProps) {
   const [startedAtOpen, setStartedAtOpen] = useState(false);
   const [finishedAtOpen, setFinishedAtOpen] = useState(false);
 
+  const STATUS_OPTIONS: { value: BookStatus; label: string }[] = [
+    { value: "want_to_read", label: t("book.status.wantToRead") },
+    { value: "reading", label: t("book.status.reading") },
+    { value: "read", label: t("book.status.read") },
+  ];
+
   const mutation = useMutation({
     mutationFn: (data: Partial<Book>) => updateBook(book.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["book", book.id] });
-      toast.success("Cambios guardados");
+      toast.success(t("reading.changesSaved"));
       router.refresh();
     },
     onError: (error: Error) => {
@@ -62,7 +66,10 @@ export function ReadingControls({ book }: ReadingControlsProps) {
       setLocalRating(book.rating);
       setLocalStartedAt(book.started_at);
       setLocalFinishedAt(book.finished_at);
-      toast.error(`Error: ${error.message}`);
+      // Notificación de errores (sección 3.5): solo si está activada.
+      if (settings.notifications.errors) {
+        toast.error(`${t("reading.saveError")}: ${error.message}`);
+      }
     },
   });
 
@@ -77,14 +84,14 @@ export function ReadingControls({ book }: ReadingControlsProps) {
   };
 
   const handleStartedAtChange = (date: Date | undefined) => {
-    const iso = date ? format(date, "yyyy-MM-dd") : null;
+    const iso = date ? formatIso(date) : null;
     setLocalStartedAt(iso);
     mutation.mutate({ started_at: iso });
     setStartedAtOpen(false);
   };
 
   const handleFinishedAtChange = (date: Date | undefined) => {
-    const iso = date ? format(date, "yyyy-MM-dd") : null;
+    const iso = date ? formatIso(date) : null;
     setLocalFinishedAt(iso);
     mutation.mutate({ finished_at: iso });
     setFinishedAtOpen(false);
@@ -97,14 +104,16 @@ export function ReadingControls({ book }: ReadingControlsProps) {
     <div className="space-y-4">
       {/* Status Select */}
       <div>
-        <label className="mb-1 block text-sm font-medium">Estado</label>
+        <label className="mb-1 block text-sm font-medium">
+          {t("reading.status")}
+        </label>
         <Select
           value={localStatus}
           onValueChange={handleStatusChange}
           disabled={mutation.isPending}
         >
           <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Selecciona estado" />
+            <SelectValue placeholder={t("reading.selectStatus")} />
           </SelectTrigger>
           <SelectContent>
             {STATUS_OPTIONS.map((option) => (
@@ -118,19 +127,23 @@ export function ReadingControls({ book }: ReadingControlsProps) {
 
       {/* Rating Stars */}
       <div>
-        <label className="mb-1 block text-sm font-medium">Valoración</label>
+        <label className="mb-1 block text-sm font-medium">
+          {t("reading.rating")}
+        </label>
         <InteractiveRatingStars
           rating={localRating}
           onChange={handleRatingChange}
           disabled={mutation.isPending}
-          ariaLabel="Valoración del libro"
+          ariaLabel={t("reading.ratingAria")}
         />
       </div>
 
       {/* Started At Date Picker */}
       {showStartedAt && (
         <div>
-          <label className="mb-1 block text-sm font-medium">Fecha inicio</label>
+          <label className="mb-1 block text-sm font-medium">
+            {t("reading.startDate")}
+          </label>
           <Popover open={startedAtOpen} onOpenChange={setStartedAtOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -139,8 +152,8 @@ export function ReadingControls({ book }: ReadingControlsProps) {
                 disabled={mutation.isPending}
               >
                 {localStartedAt
-                  ? format(new Date(localStartedAt), "dd/MM/yyyy")
-                  : "Seleccionar fecha"}
+                  ? formatDate(language, localStartedAt)
+                  : t("reading.selectDate")}
                 <ChevronDown className="ml-auto size-4 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -159,7 +172,9 @@ export function ReadingControls({ book }: ReadingControlsProps) {
       {/* Finished At Date Picker */}
       {showFinishedAt && (
         <div>
-          <label className="mb-1 block text-sm font-medium">Fecha fin</label>
+          <label className="mb-1 block text-sm font-medium">
+            {t("reading.finishDate")}
+          </label>
           <Popover open={finishedAtOpen} onOpenChange={setFinishedAtOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -168,8 +183,8 @@ export function ReadingControls({ book }: ReadingControlsProps) {
                 disabled={mutation.isPending}
               >
                 {localFinishedAt
-                  ? format(new Date(localFinishedAt), "dd/MM/yyyy")
-                  : "Seleccionar fecha"}
+                  ? formatDate(language, localFinishedAt)
+                  : t("reading.selectDate")}
                 <ChevronDown className="ml-auto size-4 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -193,9 +208,17 @@ export function ReadingControls({ book }: ReadingControlsProps) {
       {mutation.isPending && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="animate-spin">⟳</span>
-          Guardando...
+          {t("reading.saving")}
         </div>
       )}
     </div>
   );
+}
+
+/** Formatea una fecha a ISO `yyyy-MM-dd` para el payload de la API. */
+function formatIso(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }

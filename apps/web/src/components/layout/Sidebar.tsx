@@ -5,12 +5,7 @@ import { usePathname } from "next/navigation";
 import { BookOpen, LayoutDashboard, Settings } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-
-const NAV_ITEMS = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Books", href: "/books", icon: BookOpen },
-  { label: "Settings", href: "/settings", icon: Settings },
-];
+import { useTranslation } from "@/lib/i18n";
 
 /**
  * Sidebar del layout protegido: navegación principal.
@@ -18,6 +13,17 @@ const NAV_ITEMS = [
  */
 export function Sidebar() {
   const pathname = usePathname();
+  const { t } = useTranslation();
+
+  const NAV_ITEMS = [
+    {
+      label: t("sidebar.dashboard"),
+      href: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    { label: t("sidebar.books"), href: "/books", icon: BookOpen },
+    { label: t("sidebar.settings"), href: "/settings", icon: Settings },
+  ];
 
   return (
     <aside className="w-56 shrink-0 border-r bg-muted/30 p-4">

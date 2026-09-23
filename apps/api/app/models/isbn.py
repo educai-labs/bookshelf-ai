@@ -68,3 +68,20 @@ class ISBNLookupResponse(BaseModel):
     publisher: str | None = None
     published_date: str | None = None
     description: str | None = None
+
+
+class CatalogSearchResult(BaseModel):
+    """Resultado normalizado de la búsqueda textual (feature 023).
+
+    A diferencia de `ISBNLookupResponse` (metadatos completos por ISBN), este
+    modelo es el mínimo que necesita el typeahead: ISBN-13 resuelto + título
+    (+ autores y portada opcionales). Solo se devuelven resultados cuyo ISBN-13
+    se puede resolver (llave maestra del alta).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    isbn13: str = Field(pattern=r"^\d{13}$")
+    title: str
+    authors: list[str] = Field(default_factory=list)
+    cover_url: str | None = None

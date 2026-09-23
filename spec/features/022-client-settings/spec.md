@@ -1,6 +1,6 @@
 # 022 · Client Settings
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

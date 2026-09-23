@@ -8,18 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Book, BookStatus } from "@/types/book";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 export interface BookCardProps {
   book: Book;
   /** Callback de click → navegación a `/book/${book.id}`. */
   onClick: () => void;
 }
-
-const STATUS_LABELS: Record<BookStatus, string> = {
-  want_to_read: "Quiero leer",
-  reading: "Leyendo",
-  read: "Leído",
-};
 
 /** Variant del Badge por status (T25): gray / blue / green-outline. */
 const STATUS_VARIANTS: Record<BookStatus, "default" | "secondary" | "outline"> =
@@ -63,7 +58,14 @@ function CoverPlaceholder() {
  */
 export function BookCard({ book, onClick }: BookCardProps) {
   const [coverFailed, setCoverFailed] = useState(false);
+  const { t } = useTranslation();
   const showCover = Boolean(book.cover_url) && !coverFailed;
+
+  const STATUS_LABELS: Record<BookStatus, string> = {
+    want_to_read: t("book.status.wantToRead"),
+    reading: t("book.status.reading"),
+    read: t("book.status.read"),
+  };
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Enter" || event.key === " ") {

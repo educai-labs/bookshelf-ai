@@ -2,7 +2,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 
 // Mock UI components that don't exist yet - must be hoisted
 vi.mock("@/components/ui/popover", () => ({
@@ -55,6 +55,43 @@ vi.mock("@/lib/api/books", () => ({
   updateBook: vi.fn(),
 }));
 
+// Preferencias controlables por test (feature 022).
+const notifState = vi.hoisted(() => ({ errors: true }));
+
+vi.mock("@/contexts/SettingsContext", () => ({
+  useSettings: () => ({
+    settings: {
+      notifications: {
+        errors: notifState.errors,
+        vectorizationDone: true,
+        recommendations: true,
+        account: true,
+      },
+      reader: { confirmDeletions: true },
+      chat: { respondInInterfaceLanguage: true },
+      privacy: { useNotesForSearch: true },
+      language: "es",
+      theme: "system",
+    },
+    language: "es",
+    theme: "system",
+    resolvedTheme: "system",
+    setTheme: vi.fn(),
+    setLanguage: vi.fn(),
+    updateReader: vi.fn(),
+    updateChat: vi.fn(),
+    updateNotifications: vi.fn(),
+    updatePrivacy: vi.fn(),
+    isAccountLoaded: true,
+    accountError: null,
+    reducedMotion: false,
+    loadChatHistory: vi.fn(),
+    saveChatHistory: vi.fn(),
+    clearChatHistory: vi.fn(),
+    restoreDefaults: vi.fn(),
+  }),
+}));
+
 import { updateBook } from "@/lib/api/books";
 
 // Import after mocks are hoisted
@@ -101,13 +138,14 @@ describe("ReadingControls", () => {
     vi.clearAllMocks();
     vi.mocked(updateBook).mockReset();
     vi.mocked(updateBook).mockResolvedValue({ ...mockBook, status: "reading" });
+    notifState.errors = true;
   });
 
   it("renders status select with current status", () => {
     renderControls();
 
     expect(screen.getByText("Estado")).toBeInTheDocument();
-    expect(screen.getByText("Por leer")).toBeInTheDocument();
+    expect(screen.getByText("Quiero leer")).toBeInTheDocument();
   });
 
   it("calls updateBook mutation when status changes", async () => {
@@ -259,11 +297,35 @@ describe("ReadingControls", () => {
     // Try to change status - find combobox by role
     const selectTrigger = screen.getByRole("combobox");
     await user.click(selectTrigger);
-    await user.click(screen.getByRole("option", { name: /por leer/i }));
+    await user.click(screen.getByRole("option", { name: /quiero leer/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/error: network error/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/error al guardar los cambios: network error/i),
+      ).toBeInTheDocument();
     });
+  });
+
+  it("no muestra toast de error si notifications.errors está desactivada", async () => {
+    notifState.errors = false;
+    const errorSpy = vi.spyOn(toast, "error").mockImplementation(() => "id");
+    const user = userEvent.setup();
+    vi.mocked(updateBook).mockRejectedValue(new Error("Network error"));
+
+    const bookReading = { ...mockBook, status: "reading" as const };
+    renderControls(bookReading);
+
+    const selectTrigger = screen.getByRole("combobox");
+    await user.click(selectTrigger);
+    await user.click(screen.getByRole("option", { name: /quiero leer/i }));
+
+    // `onError` se ejecuta (revierte el estado local a "Leyendo") pero, con la
+    // preferencia desactivada, no emite toast de error.
+    await waitFor(() => {
+      expect(screen.getByRole("combobox")).toHaveTextContent(/leyendo/i);
+    });
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it("enforces minDate on finished_at (not before started_at)", async () => {

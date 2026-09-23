@@ -59,3 +59,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Accesibilidad (feature 022 · sección 3.7): respeta `prefers-reduced-motion`
+   desactivando animaciones/transiciones para usuarios que lo piden al SO. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

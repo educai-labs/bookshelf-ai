@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { SessionProvider } from "@/components/auth/SessionProvider";
+import { AddBookModalProvider } from "@/components/books/AddBookModalProvider";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Footer } from "@/components/layout/Footer";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -30,12 +31,14 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <SessionProvider>
-        <DashboardHeader />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 p-6">{children}</main>
-        </div>
-        <Footer />
+        <AddBookModalProvider>
+          <DashboardHeader />
+          <div className="flex flex-1">
+            <Sidebar />
+            <main className="flex-1 p-6">{children}</main>
+          </div>
+          <Footer />
+        </AddBookModalProvider>
       </SessionProvider>
     </div>
   );

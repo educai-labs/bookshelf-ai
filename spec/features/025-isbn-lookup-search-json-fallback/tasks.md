@@ -1,0 +1,45 @@
+---
+estado: "hecho"
+---
+
+# 025 · ISBN Lookup Fallback vía search.json — Tareas
+
+- [x] Revisar el flujo actual de `ISBNLookupService.buscar()` y sus constantes, helpers de normalización, caché y reintentos antes de modificarlo.
+- [x] Añadir la URL de Open Library `search.json` y el método de consulta específico en `apps/api/app/services/isbn_lookup.py`.
+- [x] Implementar la llamada a `search.json` con el `httpx.AsyncClient` inyectado y el timeout de 5 segundos.
+- [x] Aplicar a `search.json` los dos reintentos existentes con backoff de 1 y 2 segundos mediante `_get_json`.
+- [x] Tratar respuestas HTTP 4xx/5xx, JSON inválido y ausencia de `docs` como fuente sin datos.
+- [x] Registrar los errores de red y timeout agotados de `search.json` sin detener la continuación hacia Google Books.
+- [x] Implementar el filtrado de documentos de `search.json` por ISBN-13 normalizado solicitado.
+- [x] Resolver ISBN-10 de los documentos mediante `_resolver_isbn13` antes de comparar identificadores.
+- [x] Mapear `title` y `author_name` del documento al modelo `ISBNLookupResponse`.
+- [x] Construir `cover_url` desde `cover_i` usando la URL de portada de Open Library.
+- [x] Mapear `first_publish_year` a `published_date` como cadena y dejar `description`, `page_count` y `publisher` en `None`.
+- [x] Validar el resultado mapeado con `_es_completo` y descartar documentos sin título, autores o portada suficientes.
+- [x] Insertar `search.json` después de `/api/books` y antes de Google Books únicamente cuando la fuente anterior no produzca datos completos.
+- [x] Acumular en `ISBNNotFoundError` las tres fuentes en el orden `/api/books`, `search.json` y Google Books cuando todas fallen.
+- [x] Conservar la caché ISBN existente para almacenar los resultados exitosos obtenidos desde `search.json`.
+- [x] Añadir a `apps/api/app/services/test_isbn_lookup.py` fixtures de `/api/books` 404 y de `search.json` para el ISBN `9780684838724`.
+- [x] Probar el mapeo completo del fixture real, incluyendo título, autores, portada, año publicado y campos opcionales nulos.
+- [x] Probar que solo se acepta un documento cuyo array `isbn` coincide con el ISBN solicitado.
+- [x] Probar la resolución y coincidencia de un ISBN-10 equivalente al ISBN-13 solicitado.
+- [x] Probar el descarte de documentos que contienen únicamente otros ISBNs.
+- [x] Probar el descarte de documentos incompletos y la continuación hacia Google Books.
+- [x] Probar respuestas HTTP erróneas, JSON inválido y respuesta sin `docs` de `search.json`.
+- [x] Probar timeout y error de red agotados, incluyendo el registro del error y la continuación hacia Google Books.
+- [x] Probar el número de reintentos y el backoff configurado para `search.json`.
+- [x] Probar el orden de llamadas `/api/books` → `search.json` → Google Books.
+- [x] Probar que `search.json` no se consulta cuando `/api/books` ya devuelve metadatos completos.
+- [x] Probar que un resultado exitoso de `search.json` se guarda en caché y que la segunda búsqueda no realiza llamadas HTTP.
+- [x] Probar el mensaje descriptivo de `ISBNNotFoundError` cuando fallan las tres fuentes.
+- [x] Ampliar `apps/api/app/api/v1/test_lookup.py` para verificar que `GET /api/v1/books/lookup` devuelve el resultado de `search.json` sin cambiar su contrato.
+- [x] Ampliar los tests de libros para verificar que `POST /api/v1/books` crea el libro con `description`, `page_count` y `publisher` en `NULL` y conserva `published_date`.
+- [x] Actualizar las descripciones OpenAPI de `GET /lookup` y `POST /books` para documentar `/api/books`, `search.json` y Google Books en su orden real.
+- [x] Verificar que no se modifican `ISBNLookupResponse`, `BookMetadata`, `buscar_texto()` ni los contratos de los endpoints.
+- [x] Ejecutar `cd apps/api && pytest -v` y corregir cualquier fallo de la suite backend.
+- [x] Ejecutar `cd apps/api && ruff check .` y corregir cualquier incumplimiento.
+- [x] Ejecutar `cd apps/api && black --check .` y corregir cualquier incumplimiento de formato.
+- [x] Confirmar que la suite existente de sugerencias de la feature 023 permanece verde.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.

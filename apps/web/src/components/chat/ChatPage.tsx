@@ -6,56 +6,38 @@ import { Loader2 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
-import { streamChat, type ChatMode } from "@/lib/api/chat";
+import {
+  streamChat,
+  type ChatMode,
+  type ChatRequestPayload,
+} from "@/lib/api/chat";
+import { ApiError } from "@/lib/api/books";
+import { useSettings } from "@/contexts/SettingsContext";
+import { useTranslation } from "@/lib/i18n";
 import { ChatInput } from "./ChatInput";
 import { ChatMessage, type ChatMessageData } from "./ChatMessage";
 
-const STORAGE_KEY = "chat_history";
-
-function isStoredMessage(value: unknown): value is ChatMessageData {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    (value as ChatMessageData).role !== undefined &&
-    ((value as ChatMessageData).role === "user" ||
-      (value as ChatMessageData).role === "assistant") &&
-    typeof (value as ChatMessageData).content === "string"
-  );
-}
-
-/** Hidrata el historial desde `sessionStorage` descartando JSON inválido/antiguo. */
-function loadHistory(): ChatMessageData[] {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isStoredMessage);
-  } catch {
-    return [];
-  }
-}
-
-function saveHistory(messages: ChatMessageData[]): void {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  } catch {
-    // Cuota/privacidad: no interrumpir el chat por un fallo de almacenamiento.
-  }
-}
-
 /**
- * Página de chat (feature 017). Lee el `book_id` opcional de `searchParams`,
- * permite seleccionar contexto libro/RAG, envía `POST /ai/chat` y pinta la
- * respuesta token a token. El historial vive exclusivamente en `sessionStorage`.
+ * Página de chat (feature 017, adaptada en 022). Lee el `book_id` opcional de
+ * `searchParams`, permite seleccionar contexto libro/RAG, envía `POST /ai/chat`
+ * y pinta la respuesta token a token. Consume únicamente `useSettings` para el
+ * historial (sessionStorage), el modo inicial, el idioma y la visibilidad.
  */
 export function ChatPage() {
   const searchParams = useSearchParams();
   const bookId = searchParams.get("book_id") ?? undefined;
 
-  const [messages, setMessages] = useState<ChatMessageData[]>(loadHistory);
+  const { t, language } = useTranslation();
+  const { settings, loadChatHistory, saveChatHistory } = useSettings();
+
+  const initialMode: ChatMode =
+    settings.chat.initialMode === "library" ? "rag" : bookId ? "book" : "rag";
+
+  const [messages, setMessages] = useState<ChatMessageData[]>(() =>
+    settings.chat.showHistory ? loadChatHistory() : [],
+  );
   const [input, setInput] = useState("");
-  const [mode, setMode] = useState<ChatMode>(bookId ? "book" : "rag");
+  const [mode, setMode] = useState<ChatMode>(initialMode);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,8 +45,10 @@ export function ChatPage() {
 
   // Persiste el historial tras cada cambio (contrato `{ role, content }`).
   useEffect(() => {
-    saveHistory(messages);
-  }, [messages]);
+    if (settings.chat.showHistory) {
+      saveChatHistory(messages);
+    }
+  }, [messages, settings.chat.showHistory, saveChatHistory]);
 
   // Auto-scroll al último mensaje.
   useEffect(() => {
@@ -90,8 +74,16 @@ export function ChatPage() {
       { role: "assistant", content: "" },
     ]);
 
-    const payload =
+    const payload: ChatRequestPayload =
       mode === "book" && bookId ? { query, bookId, mode } : { query, mode };
+
+    // `respondInInterfaceLanguage` (sección 3.4): solo se envía el idioma si la
+    // preferencia está activada. `useNotesForSearch` (sección 3.6): controla si
+    // las notas del usuario entran en el contexto RAG/chat.
+    if (settings.chat.respondInInterfaceLanguage) {
+      payload.language = language;
+    }
+    payload.useNotes = settings.privacy.useNotesForSearch;
 
     try {
       for await (const chunk of streamChat(payload)) {
@@ -111,8 +103,19 @@ export function ChatPage() {
         }
       }
     } catch (err) {
+      // Traduce por código (nunca muestra literales en español del cliente API).
       setError(
-        err instanceof Error ? err.message : "Error inesperado del chat",
+        err instanceof ApiError
+          ? t(
+              err.code === "GEMINI_KEY_MISSING"
+                ? "chat.notConfigured"
+                : err.code === "NO_STREAM_BODY"
+                  ? "chat.noStreamBody"
+                  : "chat.unexpected",
+            )
+          : err instanceof Error
+            ? err.message
+            : t("chat.unexpected"),
       );
     } finally {
       setIsStreaming(false);
@@ -125,7 +128,7 @@ export function ChatPage() {
         return prev;
       });
     }
-  }, [input, isStreaming, mode, bookId]);
+  }, [input, isStreaming, mode, bookId, language, t, settings]);
 
   const thinking = isStreaming;
 
@@ -147,7 +150,7 @@ export function ChatPage() {
         >
           {messages.length === 0 && (
             <p className="mt-8 text-center text-sm text-muted-foreground">
-              Pregunta a tu biblioteca o habla con uno de tus libros.
+              {t("chat.empty")}
             </p>
           )}
           {messages.map((message, index) => (
@@ -159,7 +162,7 @@ export function ChatPage() {
               className="flex items-center gap-2 text-sm text-muted-foreground"
             >
               <Loader2 className="size-4 animate-spin" />
-              Pensando...
+              {t("chat.thinking")}
             </div>
           )}
         </div>
