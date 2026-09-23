@@ -1,0 +1,35 @@
+# 024 · Schema Migration Verification — Plan
+
+## Enfoque
+
+Implementar la verificación como una herramienta independiente de las migraciones existentes: el script consultará el Supabase remoto con las credenciales del entorno, comprobará cada objeto requerido y devolverá un diagnóstico seguro y accionable. El wrapper npm reutilizará el patrón de `verify:supabase:py`, sin introducir un segundo flujo de configuración ni autoaplicar cambios.
+
+En paralelo, ampliar el mapeador común de errores del backend para convertir únicamente `PGRST205` y `PGRST202` en el 503 estructurado de migración ausente, conservando todos los mapeos actuales. Finalmente, documentar el procedimiento operativo y la obligación de aplicar y verificar cada migración para que el proceso sea parte de las tareas de futuras features.
+
+## Implementación
+
+1. Crear `scripts/verify-schema.py` siguiendo la carga de `.env.local`, la resolución de la raíz y el manejo de dependencias de `scripts/verify-supabase.py`. Exigir `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` únicamente desde el entorno, ocultar la URL completa y cualquier secreto, y fallar antes de conectar si falta una variable.
+2. Implementar en `scripts/verify-schema.py` la comprobación remota, objeto por objeto, de las tablas `books`, `book_notes` y `account_preferences`, la RPC `match_book_notes`, la extensión `vector` y el índice HNSW nombrado `idx_book_notes_embedding_hnsw` sobre `book_notes.embedding`, usando las consultas/introspección compatibles con el cliente Supabase disponible y distinguiendo ausencia de objeto de errores de red o credenciales.
+3. Hacer que el script imprima una marca ✓/✗ por objeto y un resumen con tipo, nombre y remedio (`supabase db push --include-all`, seguido de `npm run verify:schema`) para faltantes. Mantener exit 0 solo cuando todos estén presentes y exit 1 tanto para faltantes como para errores de conexión/autenticación, con mensajes claramente diferenciados.
+4. Añadir `verify:schema` a `package.json` para ejecutar `scripts/verify-schema.py` con el mismo intérprete/convención que `verify:supabase:py`, sin añadir dependencias salvo que la implementación lo justifique explícitamente.
+5. Actualizar `apps/api/app/core/errors.py`: en `map_supabase_error`, antes del fallback genérico, mapear `PGRST205` y `PGRST202` a HTTP 503 con `detail` `{code: "DB_MIGRATION_MISSING", message: ...}`. El mensaje debe identificar tabla/columna o función cuando esté disponible y siempre indicar `supabase db push --include-all` y `npm run verify:schema`; registrar el código PostgREST y diagnóstico no sensible mediante el logger común.
+6. Mantener intactos los caminos de `23505`, `23503`, `PGRST116` y `406`, así como el fallback `DB_ERROR`, y añadir `apps/api/tests/test_errors.py` (o el módulo de tests existente que corresponda) con `APIError` simuladas: casos `PGRST205`/`PGRST202`, asserts de status y detail, y regresiones exactas de los mapeos existentes y del código desconocido.
+7. Documentar en `docs/supabase-setup.md` las variables requeridas, carga opcional de `.env.local`, objetos comprobados, salida esperada, códigos de salida y diagnóstico de faltantes frente a red/credenciales. Documentar en `AGENTS.md` la convención SDD obligatoria para toda feature que cree una migración: tarea con `supabase db push --include-all` + `npm run verify:schema` y evidencia del resultado; no modificar migraciones ya aplicadas.
+8. Verificar obligatoriamente la suite backend desde `apps/api` con `pytest -v`, `ruff check .` y `black --check .`, y comprobar manualmente `npm run verify:schema` con variables ausentes, esquema completo y un objeto faltante/error de conexión sin exponer secretos. La validación de frontend/repositorio disponible según la constitución (`cd apps/web && npm run lint`, `cd apps/web && npm run test`, `cd apps/web && npm run build`) queda como comprobación opcional y no bloqueante, porque esta feature no modifica código de frontend. No ejecutar ni documentar `supabase db push` como parte automática del script: cuando se aplique el remedio operativo, usar explícitamente `supabase db push --include-all` por la mezcla de numeración no-timestamp y timestamped del repositorio.
+
+## Decisiones
+
+- **Script nuevo e independiente** — Se conserva `scripts/verify-supabase.py` y su semántica de verificación de conexión; la nueva herramienta cubre el inventario ampliado de esquema sin alterar la feature 001 ni convertir una tabla ausente en éxito.
+- **Credenciales solo por entorno y sin auto-reparación** — Se usa `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` y `.env.local` como fuente local, nunca secretos hardcodeados ni frontend. El verificador diagnostica; la aplicación de migraciones queda en un paso manual y auditable.
+- **`PGRST205`/`PGRST202` en el mapeador común** — Centralizar el 503 cubre settings, notes, books y chat/RAG sin tocar endpoints. Se descarta lógica específica por router porque duplicaría comportamiento y podría dejar consumidores con 500.
+- **Remedio operativo `supabase db push --include-all`** — Es la forma aplicable en este repositorio debido a la mezcla de migraciones no-timestamp y timestamped; no se usa `db reset` ni se modifican migraciones ya aplicadas.
+- **Contrato de error estructurado y logging seguro** — El response conserva `{code, message, field?}` y el código original se registra sin claves ni URL completa, permitiendo diagnóstico sin filtrar secretos ni cambiar los contratos de errores existentes.
+
+## Riesgos
+
+- **El remoto no expone un objeto o endpoint de introspección de la misma forma que otro entorno** — Aislar cada comprobación, tratar respuestas de ausencia como faltantes y errores de transporte/autenticación como fallo de verificación; validar contra un proyecto remoto real antes de cerrar la feature.
+- **Falsos positivos al verificar RPC, extensión o el índice HNSW** — Comprobar el nombre exacto y la propiedad requerida (incluido `book_notes.embedding` y `idx_book_notes_embedding_hnsw`), no solo que exista una respuesta HTTP o una tabla; cubrir cada objeto en la salida y documentar la limitación de no validar DDL completo.
+- **Filtración accidental de secretos o de la URL del proyecto** — Centralizar el formateo de errores, no imprimir respuestas completas del cliente y sanitizar excepciones/logs; probar explícitamente variables ausentes y credenciales inválidas.
+- **Cambio regresivo en el mapeo de errores** — Colocar los nuevos códigos antes del fallback y conservar ramas existentes; los tests unitarios de regresión deben comparar status, código, mensaje y `field` esperados.
+- **El diagnóstico 503 pierde el contexto útil del error original** — Construir el mensaje a partir de `code`, `message` y detalles no sensibles, manteniendo el código en logs; no incluir tokens, headers ni datos de usuario.
+- **La documentación futura vuelve a marcar migraciones como aplicadas sin aplicarlas al remoto** — Hacer obligatoria la tarea de proceso en `AGENTS.md`, exigir evidencia de ambos comandos y repetir la convención en `docs/supabase-setup.md`.
