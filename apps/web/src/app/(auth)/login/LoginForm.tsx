@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase/client";
 import { loginSchema, type LoginValues } from "@/lib/validations";
+import { useTranslation } from "@/lib/i18n";
 
 /**
  * Formulario de inicio de sesión (email/password + Google OAuth).
@@ -29,6 +30,7 @@ import { loginSchema, type LoginValues } from "@/lib/validations";
  */
 export function LoginForm() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
@@ -49,10 +51,10 @@ export function LoginForm() {
         toast.error(error.message);
         return;
       }
-      toast.success("Sesión iniciada correctamente");
+      toast.success(t("auth.login.sessionStarted"));
       router.push("/dashboard");
     } catch {
-      toast.error("Error inesperado al iniciar sesión");
+      toast.error(t("auth.login.unexpected"));
     } finally {
       setIsSubmitting(false);
     }
@@ -72,7 +74,7 @@ export function LoginForm() {
       }
       // En éxito Supabase redirige al proveedor; el loading se mantiene.
     } catch {
-      toast.error("Error al conectar con Google");
+      toast.error(t("auth.login.googleError"));
       setIsGoogleLoading(false);
     }
   }
@@ -80,18 +82,18 @@ export function LoginForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Iniciar sesión</CardTitle>
-        <CardDescription>Accede a tu biblioteca personal.</CardDescription>
+        <CardTitle>{t("auth.login.title")}</CardTitle>
+        <CardDescription>{t("auth.login.subtitle")}</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.login.email")}</Label>
             <Input
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="tu@email.com"
+              placeholder={t("auth.login.emailPlaceholder")}
               aria-invalid={Boolean(errors.email)}
               {...register("email")}
             />
@@ -102,7 +104,7 @@ export function LoginForm() {
             ) : null}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="password">{t("auth.login.password")}</Label>
             <Input
               id="password"
               type="password"
@@ -118,7 +120,7 @@ export function LoginForm() {
           </div>
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-            Iniciar sesión
+            {t("auth.login.submit")}
           </Button>
         </CardContent>
       </form>
@@ -128,7 +130,7 @@ export function LoginForm() {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase text-muted-foreground">
-            <span className="bg-card px-2">o continúa con</span>
+            <span className="bg-card px-2">{t("auth.login.orContinue")}</span>
           </div>
         </div>
         <Button
@@ -143,15 +145,15 @@ export function LoginForm() {
           ) : (
             <GoogleIcon />
           )}
-          Continuar con Google
+          {t("auth.login.google")}
         </Button>
         <p className="text-sm text-muted-foreground">
-          ¿No tienes cuenta?{" "}
+          {t("auth.login.noAccount")}{" "}
           <Link
             href="/register"
             className="text-primary underline-offset-4 hover:underline"
           >
-            Regístrate
+            {t("auth.login.register")}
           </Link>
         </p>
       </CardFooter>

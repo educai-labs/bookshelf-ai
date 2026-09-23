@@ -1,8 +1,18 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
 import { cn } from "@/lib/utils";
 import { Book } from "@/types/book";
+import { deleteBook } from "@/lib/api/books";
+import { useTranslation } from "@/lib/i18n";
+import { useSettings } from "@/contexts/SettingsContext";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/settings/ConfirmDialog";
 
 interface BookHeaderProps {
   book: Book;
@@ -23,20 +33,65 @@ function statusVariant(
   }
 }
 
-/** Etiqueta legible del estado */
-function statusLabel(status: Book["status"]): string {
-  switch (status) {
-    case "reading":
-      return "Leyendo";
-    case "read":
-      return "Leído";
-    case "want_to_read":
-    default:
-      return "Por leer";
-  }
-}
-
 export function BookHeader({ book }: BookHeaderProps) {
+  const { t } = useTranslation();
+  const { settings } = useSettings();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const statusLabels: Record<Book["status"], string> = {
+    reading: t("book.status.reading"),
+    read: t("book.status.read"),
+    want_to_read: t("book.status.wantToRead"),
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteBook(book.id),
+    onSuccess: async () => {
+      if (settings.notifications.account) {
+        toast.success(t("book.deleted"));
+      }
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.removeQueries({ queryKey: ["book", book.id] });
+      router.push("/dashboard");
+    },
+    onError: (error: Error) => {
+      if (settings.notifications.errors) {
+        toast.error(`${t("book.deleteError")}: ${error.message}`);
+      }
+    },
+  });
+
+  const handleDelete = () => {
+    deleteMutation.mutateAsync().catch(() => {
+      // El error ya se notificó vía `onError`.
+    });
+  };
+
+  // `confirmDeletions` (sección 3.3): confirmación previa si está activada;
+  // borrado directo en caso contrario.
+  const deleteButton = settings.reader.confirmDeletions ? (
+    <ConfirmDialog
+      triggerLabel={t("book.delete")}
+      title={t("book.delete")}
+      description={t("book.deleteConfirm")}
+      confirmLabel={t("common.delete")}
+      cancelLabel={t("common.cancel")}
+      destructive
+      onConfirm={handleDelete}
+    />
+  ) : (
+    <Button
+      variant="destructive"
+      onClick={handleDelete}
+      disabled={deleteMutation.isPending}
+      aria-label={t("book.delete")}
+    >
+      <Trash2 className="size-4" />
+      {t("book.delete")}
+    </Button>
+  );
+
   return (
     <div className="flex flex-col gap-6 sm:flex-row">
       {/* Portada - priority para LCP */}
@@ -44,7 +99,7 @@ export function BookHeader({ book }: BookHeaderProps) {
         {book.cover_url ? (
           <Image
             src={book.cover_url}
-            alt={`Portada de ${book.title}`}
+            alt={t("book.coverAlt", { title: book.title })}
             fill
             priority
             sizes="(max-width: 640px) 100vw, 300px"
@@ -54,7 +109,7 @@ export function BookHeader({ book }: BookHeaderProps) {
           />
         ) : (
           <div className="flex size-full items-center justify-center rounded-lg bg-muted">
-            <span className="text-muted-foreground">Sin portada</span>
+            <span className="text-muted-foreground">{t("book.noCover")}</span>
           </div>
         )}
       </div>
@@ -66,30 +121,32 @@ export function BookHeader({ book }: BookHeaderProps) {
           <p className="mt-1 text-lg text-muted-foreground">
             {book.authors.length > 0
               ? book.authors.join(", ")
-              : "Autor desconocido"}
+              : t("book.unknownAuthor")}
           </p>
 
           {book.publisher && (
             <p className="mt-2 text-sm text-muted-foreground">
-              Editorial: <span className="font-medium">{book.publisher}</span>
+              {t("book.publisher")}:{" "}
+              <span className="font-medium">{book.publisher}</span>
             </p>
           )}
 
           {book.published_date && (
             <p className="mt-1 text-sm text-muted-foreground">
-              Publicado:{" "}
+              {t("book.published")}:{" "}
               <span className="font-medium">{book.published_date}</span>
             </p>
           )}
 
           {book.page_count && (
             <p className="mt-1 text-sm text-muted-foreground">
-              Páginas: <span className="font-medium">{book.page_count}</span>
+              {t("book.pages")}:{" "}
+              <span className="font-medium">{book.page_count}</span>
             </p>
           )}
 
           <p className="mt-1 text-sm text-muted-foreground">
-            ISBN:{" "}
+            {t("book.isbn")}:{" "}
             <span className="font-mono text-xs font-medium">{book.isbn13}</span>
           </p>
         </div>
@@ -102,7 +159,7 @@ export function BookHeader({ book }: BookHeaderProps) {
               "bg-muted text-muted-foreground",
             )}
           >
-            {statusLabel(book.status)}
+            {statusLabels[book.status]}
           </span>
 
           {book.rating !== null &&
@@ -112,7 +169,7 @@ export function BookHeader({ book }: BookHeaderProps) {
               return (
                 <span
                   className="inline-flex items-center gap-1 text-amber-500"
-                  aria-label={`Rating: ${rating} de 5`}
+                  aria-label={t("rating.aria", { count: rating, max: 5 })}
                 >
                   {Array.from({ length: 5 }, (_, i) => (
                     <svg
@@ -131,6 +188,9 @@ export function BookHeader({ book }: BookHeaderProps) {
               );
             })()}
         </div>
+
+        {/* Eliminar libro (confirmación según preferencia del lector) */}
+        <div className="mt-4 flex justify-end">{deleteButton}</div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Note } from "@/types/book";
+import { useTranslation } from "@/lib/i18n";
 import { NoteCard } from "./NoteCard";
 
 interface NotesListProps {
@@ -8,10 +9,11 @@ interface NotesListProps {
 }
 
 export function NotesList({ notes }: NotesListProps) {
+  const { t } = useTranslation();
   if (notes.length === 0) {
     return (
       <div className="py-8 text-center text-muted-foreground">
-        <p>No hay notas aún. ¡Escribe la primera arriba!</p>
+        <p>{t("notes.empty")}</p>
       </div>
     );
   }

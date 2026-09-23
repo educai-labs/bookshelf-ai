@@ -21,12 +21,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase/client";
 import { registerSchema, type RegisterValues } from "@/lib/validations";
+import { useTranslation } from "@/lib/i18n";
 
 /**
  * Formulario de registro (email/password + Google OAuth).
  * Tras un `signUp` exitoso muestra pantalla de confirmación por email.
  */
 export function RegisterForm() {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -48,10 +50,10 @@ export function RegisterForm() {
         toast.error(error.message);
         return;
       }
-      toast.success("Revisa tu email para confirmar la cuenta");
+      toast.success(t("auth.register.confirmAccount"));
       setIsSuccess(true);
     } catch {
-      toast.error("Error inesperado al crear la cuenta");
+      toast.error(t("auth.register.unexpected"));
     } finally {
       setIsSubmitting(false);
     }
@@ -70,7 +72,7 @@ export function RegisterForm() {
         setIsGoogleLoading(false);
       }
     } catch {
-      toast.error("Error al conectar con Google");
+      toast.error(t("auth.register.googleError"));
       setIsGoogleLoading(false);
     }
   }
@@ -79,14 +81,12 @@ export function RegisterForm() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Revisa tu email</CardTitle>
-          <CardDescription>
-            Te hemos enviado un enlace de confirmación para activar tu cuenta.
-          </CardDescription>
+          <CardTitle>{t("auth.register.checkEmail")}</CardTitle>
+          <CardDescription>{t("auth.register.checkEmailDesc")}</CardDescription>
         </CardHeader>
         <CardFooter>
           <Button asChild variant="outline" className="w-full">
-            <Link href="/login">Ir a iniciar sesión</Link>
+            <Link href="/login">{t("auth.register.goToLogin")}</Link>
           </Button>
         </CardFooter>
       </Card>
@@ -96,18 +96,18 @@ export function RegisterForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Crear cuenta</CardTitle>
-        <CardDescription>Empieza a organizar tu biblioteca.</CardDescription>
+        <CardTitle>{t("auth.register.title")}</CardTitle>
+        <CardDescription>{t("auth.register.subtitle")}</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.register.email")}</Label>
             <Input
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="tu@email.com"
+              placeholder={t("auth.register.emailPlaceholder")}
               aria-invalid={Boolean(errors.email)}
               {...register("email")}
             />
@@ -118,7 +118,7 @@ export function RegisterForm() {
             ) : null}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="password">{t("auth.register.password")}</Label>
             <Input
               id="password"
               type="password"
@@ -134,7 +134,7 @@ export function RegisterForm() {
           </div>
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-            Crear cuenta
+            {t("auth.register.submit")}
           </Button>
         </CardContent>
       </form>
@@ -144,7 +144,9 @@ export function RegisterForm() {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase text-muted-foreground">
-            <span className="bg-card px-2">o continúa con</span>
+            <span className="bg-card px-2">
+              {t("auth.register.orContinue")}
+            </span>
           </div>
         </div>
         <Button
@@ -159,15 +161,15 @@ export function RegisterForm() {
           ) : (
             <GoogleIcon />
           )}
-          Continuar con Google
+          {t("auth.register.google")}
         </Button>
         <p className="text-sm text-muted-foreground">
-          ¿Ya tienes cuenta?{" "}
+          {t("auth.register.hasAccount")}{" "}
           <Link
             href="/login"
             className="text-primary underline-offset-4 hover:underline"
           >
-            Inicia sesión
+            {t("auth.register.login")}
           </Link>
         </p>
       </CardFooter>

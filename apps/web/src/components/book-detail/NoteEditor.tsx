@@ -12,27 +12,32 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { insertAtCursor } from "@/utils/markdown";
 import { sanitizeHtml } from "@/utils/sanitize";
+import { useTranslation } from "@/lib/i18n";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface NoteEditorProps {
   bookId: string;
   onNoteCreated?: (note: Note) => void;
 }
 
-const TOOLBAR_BUTTONS = [
-  { icon: Bold, markdown: "**", label: "Negrita" },
-  { icon: Italic, markdown: "*", label: "Cursiva" },
-  { icon: Code, markdown: "`", label: "Código inline" },
-  { icon: Link, markdown: "[texto](url)", label: "Enlace" },
-  { icon: Type, markdown: "## ", label: "Encabezado" },
-  { icon: List, markdown: "- ", label: "Lista" },
-  { icon: Quote, markdown: "> ", label: "Cita" },
-] as const;
-
 const DEBOUNCE_MS = 300;
 
 export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  const { settings } = useSettings();
+
+  const TOOLBAR_BUTTONS = [
+    { icon: Bold, markdown: "**", label: t("notes.toolbar.bold") },
+    { icon: Italic, markdown: "*", label: t("notes.toolbar.italic") },
+    { icon: Code, markdown: "`", label: t("notes.toolbar.inlineCode") },
+    { icon: Link, markdown: "[texto](url)", label: t("notes.toolbar.link") },
+    { icon: Type, markdown: "## ", label: t("notes.toolbar.heading") },
+    { icon: List, markdown: "- ", label: t("notes.toolbar.list") },
+    { icon: Quote, markdown: "> ", label: t("notes.toolbar.quote") },
+  ] as const;
+
   const [content, setContent] = useState("");
   const [previewContent, setPreviewContent] = useState("");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
@@ -90,7 +95,7 @@ export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
       queryClient.invalidateQueries({ queryKey: ["bookNotes", bookId] });
       setContent("");
       setPreviewContent("");
-      toast.success("Nota guardada");
+      toast.success(t("notes.saved"));
       onNoteCreated?.(note);
       router.refresh();
     },
@@ -99,7 +104,10 @@ export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
       if (context?.previousNotes) {
         queryClient.setQueryData(["bookNotes", bookId], context.previousNotes);
       }
-      toast.error(`Error al guardar: ${error.message}`);
+      // Notificación de errores (sección 3.5): solo si está activada.
+      if (settings.notifications.errors) {
+        toast.error(`${t("notes.errorSaving")}: ${error.message}`);
+      }
     },
   });
 
@@ -146,8 +154,8 @@ export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
         className="space-y-0"
       >
         <TabsList className="grid w-full grid-cols-2 rounded-t-lg bg-muted p-1">
-          <TabsTrigger value="edit">Editar</TabsTrigger>
-          <TabsTrigger value="preview">Previsualización</TabsTrigger>
+          <TabsTrigger value="edit">{t("notes.edit")}</TabsTrigger>
+          <TabsTrigger value="preview">{t("notes.preview")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="edit" className="mt-0">
@@ -155,7 +163,7 @@ export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
             ref={textareaRef}
             value={content}
             onChange={handleContentChange}
-            placeholder="Escribe tu nota en Markdown..."
+            placeholder={t("notes.writePlaceholder")}
             className="min-h-[200px] resize-y rounded-t-none border-t-0 font-mono text-sm"
             rows={10}
           />
@@ -167,7 +175,7 @@ export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
             dangerouslySetInnerHTML={{
               __html:
                 previewContent ||
-                "<p className='text-muted-foreground italic'>Vista previa vacía</p>",
+                `<p className='text-muted-foreground italic'>${t("notes.emptyPreview")}</p>`,
             }}
           />
         </TabsContent>
@@ -180,7 +188,7 @@ export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
           disabled={mutation.isPending || !content.trim()}
           className="w-full sm:w-auto"
         >
-          {mutation.isPending ? "Guardando..." : "Guardar nota"}
+          {mutation.isPending ? t("notes.saving") : t("notes.save")}
         </Button>
       </div>
     </div>
