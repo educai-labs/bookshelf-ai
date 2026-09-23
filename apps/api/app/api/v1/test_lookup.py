@@ -160,3 +160,48 @@ def test_lookup_error_de_red_500(client):
 
     assert resp.status_code == 500
     assert resp.json()["detail"]["code"] == "LOOKUP_FAILED"
+
+
+def test_lookup_fallback_search_json(client):
+    """Criterio 025: lookup devuelve el resultado de search.json sin cambiar contrato."""
+    evidence_isbn = "9780684838724"
+
+    def side_effect(url, params=None):
+        if "api/books" in url:
+            return httpx.Response(404, json={}, request=httpx.Request("GET", url))
+        if "search.json" in url:
+            return httpx.Response(
+                200,
+                json={
+                    "docs": [
+                        {
+                            "title": "Unlimited power",
+                            "author_name": ["Tony Robbins"],
+                            "isbn": ["9780684838724"],
+                            "cover_i": 4166860,
+                            "first_publish_year": 1987,
+                        }
+                    ]
+                },
+                request=httpx.Request("GET", url),
+            )
+        return httpx.Response(200, json={}, request=httpx.Request("GET", url))
+
+    class _Client:
+        async def get(self, url, params=None):
+            return side_effect(url, params)
+
+    _override_service(ISBNLookupService(client=_Client()))
+
+    resp = client.get(f"/api/v1/books/lookup?isbn={evidence_isbn}")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["title"] == "Unlimited power"
+    assert body["authors"] == ["Tony Robbins"]
+    assert body["cover_url"] == "https://covers.openlibrary.org/b/id/4166860-M.jpg"
+    assert body["published_date"] == "1987"
+    assert body["description"] is None
+    assert body["page_count"] is None
+    assert body["publisher"] is None
+    assert body["isbn13"] == evidence_isbn
