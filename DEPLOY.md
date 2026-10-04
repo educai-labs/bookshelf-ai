@@ -90,9 +90,13 @@ al cliente. **No existe `NEXT_PUBLIC_API_URL`.**
    | `LOG_LEVEL` | `INFO` |
    | `LOG_FORMAT` | `json` |
    | `CORS_ORIGINS` | `https://<proyecto>.vercel.app` |
+   | `NEXT_PUBLIC_SITE_URL` | `https://<proyecto>.vercel.app` |
 
 > La app falla al arranque si falta alguna credencial crítica en producción
 > (**fail-fast**). CORS usa solo la URL oficial de producción (nunca `*`).
+> `NEXT_PUBLIC_SITE_URL` es **necesaria en producción**: la validación de CORS la
+> usa como **allowlist oficial** y debe **coincidir** con `CORS_ORIGINS` (ambas
+> apuntan a `https://<proyecto>.vercel.app`).
 
 ---
 
