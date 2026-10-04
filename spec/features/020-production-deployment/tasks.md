@@ -1,58 +1,59 @@
 ---
-estado: "propuesta"
+estado: "en curso"
 ---
 
 # 020 · Production Deployment — Tareas
 
 ## Bloque A — Cambios en el repositorio
 
-- [ ] Revisar `apps/api/Dockerfile` y conservar la construcción multi-stage con `python:3.11-slim`, usuario no-root, `HEALTHCHECK` sobre `GET /health` y Uvicorn en el puerto 8000.
-- [ ] Ajustar `apps/api/Dockerfile` únicamente donde sea necesario para que la imagen sea reproducible y compatible con Cloud Run.
-- [ ] Crear `.github/workflows/ci.yml` para ejecuciones en pull requests y pushes a `main`.
-- [ ] Definir en `ci.yml` los jobs `lint-frontend`, `lint-backend`, `test-frontend`, `test-backend` y `build-backend`.
-- [ ] Configurar en `ci.yml` `npm run lint`, `npm run test` y `npm run build` desde `apps/web` en los jobs frontend correspondientes.
-- [ ] Configurar en `ci.yml` `pytest`, `ruff check .` y `black --check .` desde `apps/api` en los jobs backend correspondientes.
-- [ ] Configurar en `ci.yml` la construcción `docker build -t bookshelf-api .` desde `apps/api`.
-- [ ] Crear `.github/workflows/deploy.yml` para despliegues en pushes o merges a `main`, haciendo que el job de despliegue dependa de CI mediante `needs: ci`.
-- [ ] Configurar en `deploy.yml` el gate `npm run verify:schema` antes de autenticar, construir o desplegar, sin exponer credenciales en los logs.
-- [ ] Configurar en `deploy.yml` la autenticación de Google Cloud con `google-github-actions/auth`, `permissions: contents: read` e `id-token: write`, usando Workload Identity Federation.
-- [ ] Configurar en `deploy.yml` la construcción y publicación de la imagen en Artifact Registry y el despliegue con `gcloud run deploy` en la región europea elegida.
-- [ ] Fijar en `gcloud run deploy` la imagen, puerto 8000, `--cpu=1`, `--memory=512Mi`, `--min-instances=0`, `--max-instances=1` y `--cpu-always-allocate`.
-- [ ] Confirmar que `deploy.yml` no crea un pipeline de despliegue para Vercel ni requiere `VERCEL_TOKEN`.
-- [ ] Verificar que `apps/web/next.config.mjs` conserva `output: "standalone"` y el rewrite server-side hacia `process.env.API_URL`.
-- [ ] Confirmar que la configuración y documentación usan `API_URL` y no introducen `NEXT_PUBLIC_API_URL`.
-- [ ] Añadir `docker-compose.yml` en la raíz con servicios opcionales `api` y `web`, puertos 8000/3000 y variables desde `.env.local`.
-- [ ] Crear `DEPLOY.md` con prerrequisitos, configuración de plataformas, variables por servicio, comandos de validación, gate de esquema, health check, logs, límites de free tier y consecuencias de excederlos.
-- [ ] Documentar en `DEPLOY.md` el rollback de Cloud Run apuntando tráfico a la revisión anterior y el instant rollback de Vercel.
-- [ ] Documentar en `DEPLOY.md` que no se crean ni modifican migraciones en esta feature y que `npm run verify:schema` es el gate previo al despliegue.
-- [ ] Ejecutar `cd apps/api && pytest` y corregir los fallos de la suite backend.
-- [ ] Ejecutar `cd apps/api && ruff check .` y corregir los incumplimientos de lint backend.
-- [ ] Ejecutar `cd apps/api && black --check .` y corregir los incumplimientos de formato backend.
-- [ ] Ejecutar `cd apps/web && npm run lint` y corregir los incumplimientos de lint frontend.
-- [ ] Ejecutar `cd apps/web && npm run test` y corregir los fallos de tests frontend.
-- [ ] Ejecutar `cd apps/web && npm run build` y corregir los fallos de build frontend.
-- [ ] Ejecutar `cd apps/api && docker build -t bookshelf-api .` y verificar que la imagen se construye correctamente.
-- [ ] Ejecutar `npm run verify:schema` desde la raíz como gate previo al despliegue y conservar evidencia de un resultado exitoso sin secretos.
-- [ ] Actualizar documentación si aplica.
-- [ ] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Revisar `apps/api/Dockerfile` y conservar la construcción multi-stage con `python:3.11-slim`, usuario no-root, `HEALTHCHECK` sobre `GET /health` y Uvicorn en el puerto 8000.
+- [x] Ajustar `apps/api/Dockerfile` únicamente donde sea necesario para que la imagen sea reproducible y compatible con Cloud Run.
+- [x] Crear `.github/workflows/ci.yml` para ejecuciones en pull requests y pushes a `main`.
+- [x] Definir en `ci.yml` los jobs `lint-frontend`, `lint-backend`, `test-frontend`, `test-backend` y `build-backend`.
+- [x] Configurar en `ci.yml` `npm run lint`, `npm run test` y `npm run build` desde `apps/web` en los jobs frontend correspondientes.
+- [x] Configurar en `ci.yml` `pytest`, `ruff check .` y `black --check .` desde `apps/api` en los jobs backend correspondientes.
+- [x] Configurar en `ci.yml` la construcción `docker build -t bookshelf-api .` desde `apps/api`.
+- [x] Crear `.github/workflows/deploy.yml` para despliegues en pushes o merges a `main`, haciendo que el job de despliegue dependa de CI mediante `needs: ci`.
+- [x] Configurar en `deploy.yml` el gate `npm run verify:schema` antes de autenticar, construir o desplegar, sin exponer credenciales en los logs.
+- [x] Configurar en `deploy.yml` la autenticación de Google Cloud con `google-github-actions/auth`, `permissions: contents: read` e `id-token: write`, usando Workload Identity Federation.
+- [x] Configurar en `deploy.yml` la construcción y publicación de la imagen en Artifact Registry y el despliegue con `gcloud run deploy` en la región europea elegida.
+- [x] Fijar en `gcloud run deploy` la imagen, puerto 8000, `--cpu=1`, `--memory=512Mi`, `--min-instances=0`, `--max-instances=1` y `--cpu-always-allocate`.
+- [x] Confirmar que `deploy.yml` no crea un pipeline de despliegue para Vercel ni requiere `VERCEL_TOKEN`.
+- [x] Verificar que `apps/web/next.config.mjs` conserva `output: "standalone"` y el rewrite server-side hacia `process.env.API_URL`.
+- [x] Confirmar que la configuración y documentación usan `API_URL` y no introducen `NEXT_PUBLIC_API_URL`.
+- [x] Añadir `docker-compose.yml` en la raíz con servicios opcionales `api` y `web`, puertos 8000/3000 y variables desde `.env.local`.
+- [x] Crear `DEPLOY.md` con prerrequisitos, configuración de plataformas, variables por servicio, comandos de validación, gate de esquema, health check, logs, límites de free tier y consecuencias de excederlos.
+- [x] Documentar en `DEPLOY.md` el rollback de Cloud Run apuntando tráfico a la revisión anterior y el instant rollback de Vercel.
+- [x] Documentar en `DEPLOY.md` que no se crean ni modifican migraciones en esta feature y que `npm run verify:schema` es el gate previo al despliegue.
+- [x] Ejecutar `cd apps/api && pytest` y corregir los fallos de la suite backend.
+- [x] Ejecutar `cd apps/api && ruff check .` y corregir los incumplimientos de lint backend.
+- [x] Ejecutar `cd apps/api && black --check .` y corregir los incumplimientos de formato backend.
+- [x] Ejecutar `cd apps/web && npm run lint` y corregir los incumplimientos de lint frontend.
+- [x] Ejecutar `cd apps/web && npm run test` y corregir los fallos de tests frontend.
+- [x] Ejecutar `cd apps/web && npm run build` y corregir los fallos de build frontend.
+- [ ] Ejecutar `cd apps/api && docker build -t bookshelf-api .` y verificar que la imagen se construye correctamente. _(No ejecutable: Docker no está disponible en el entorno del implementador. Dockerfile revisado y conforme, sin cambios.)_
+- [x] Ejecutar `npm run verify:schema` desde la raíz como gate previo al despliegue y conservar evidencia de un resultado exitoso sin secretos.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
 
 ## Bloque B — Configuración manual del usuario en dashboards
 
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Crear el proyecto Vercel en plan Hobby y conectar el repositorio GitHub.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Habilitar previews para pull requests y configurar framework Next.js con build command `npm run build`.
-- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Asociar `bookshelf.educai.dev` o el dominio elegido y verificar el SSL automático.
-- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Configurar en Vercel `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` y `API_URL`, sin registrar `NEXT_PUBLIC_API_URL`.
+- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Confirmar que el proyecto Vercel Hobby sirve el frontend en su dominio por defecto `https://<proyecto>.vercel.app` con SSL gestionado por la plataforma y preview deployments por PR.
+- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Configurar en Vercel `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL=https://<proyecto>.vercel.app` (URL de producción), y `API_URL`, sin registrar `NEXT_PUBLIC_API_URL`.
+- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Registrar la URL por defecto de Cloud Run (`https://<servicio>-<hash>-<region>.run.app`) como `API_URL` en Vercel para el rewrite server-side.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Crear o seleccionar el proyecto Google Cloud con billing habilitado y elegir `europe-west1` o `europe-southwest1` antes del alta.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Crear el repositorio Artifact Registry y el servicio Cloud Run en la región europea elegida.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Configurar Cloud Run con 1 vCPU, 512 MB, mínimo 0, máximo 1, puerto 8000, `GET /health` y CPU always allocated.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Crear la cuenta de servicio de runtime con solo los permisos necesarios y activar Cloud Logging.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Configurar Workload Identity Federation restringida al repositorio, organización, rama/ref y service account autorizados.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Confirmar que no existen claves JSON, archivos `.pem`, `GOOGLE_APPLICATION_CREDENTIALS` ni `VERCEL_TOKEN` persistentes.
-- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Cargar en Cloud Run `APP_ENV=production`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_JWKS_URL`, `GEMINI_API_KEY`, `GOOGLE_BOOKS_API_KEY`, `LOG_LEVEL=INFO`, `LOG_FORMAT=json` y `CORS_ORIGINS=https://bookshelf.educai.dev`.
+- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Cargar en Cloud Run `APP_ENV=production`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_JWKS_URL`, `GEMINI_API_KEY`, `GOOGLE_BOOKS_API_KEY`, `LOG_LEVEL=INFO`, `LOG_FORMAT=json` y `CORS_ORIGINS=https://<proyecto>.vercel.app` (URL de producción de Vercel).
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Confirmar que Supabase contiene el esquema remoto esperado y ejecutar `npm run verify:schema` con credenciales seguras antes de cada despliegue.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Configurar una alerta de presupuesto de `0 USD/mes` y revisar el consumo de Cloud Run, Artifact Registry y demás recursos para preservar el coste 0 EUR/mes.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Revisar Cloud Logging y Vercel Logs para confirmar logs JSON visibles y ausencia de secretos, tokens, cabeceras o respuestas privadas.
-- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Verificar de extremo a extremo una PR con preview de Vercel y un merge con producción en el dominio configurado.
+- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Verificar de extremo a extremo una PR con preview de Vercel y un merge con producción en `https://<proyecto>.vercel.app`.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Verificar que `/api/v1/*` se resuelve mediante el rewrite hacia Cloud Run y que `GET /health` responde 200 en menos de un segundo.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Crear o editar una nota, dejar el servicio sin tráfico y comprobar que la vectorización termina y el embedding queda persistido.
 - [ ] Mover la feature a "Hecho" en `../../constitution/roadmap.md`. _(Responsabilidad del agente `roadmap`; no la ejecuta el implementador.)_

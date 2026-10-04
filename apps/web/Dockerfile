@@ -16,6 +16,14 @@ RUN npm ci
 # Código y configuración.
 COPY . .
 
+# Variables públicas de Supabase (in-lineadas por Next.js en build). Se pasan
+# como build args (docker build --build-arg ... / docker compose). En Vercel,
+# la integración Git inyecta los valores reales en `npm run build`.
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 # Compila producción (standalone output en .next/standalone).
 RUN npm run build
 
