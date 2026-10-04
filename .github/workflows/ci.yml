@@ -59,7 +59,10 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install ".[dev]"
+        # Instalación editable: el paquete `app` se resuelve desde el árbol
+        # fuente, evitando que los `test_*.py` colocalizados se copien a
+        # site-packages y provoquen `import file mismatch` al recoger pytest.
+        run: pip install -e ".[dev]"
       - name: Ruff
         run: ruff check .
       - name: Black
@@ -99,7 +102,11 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install ".[dev]"
+        # Instalación editable (ver nota en `lint-backend`): el paquete `app`
+        # se resuelve desde el árbol fuente y pytest no choca con los
+        # `test_*.py` colocalizados copiados a site-packages por una
+        # instalación no editable.
+        run: pip install -e ".[dev]"
       - name: Test (pytest)
         run: pytest
 

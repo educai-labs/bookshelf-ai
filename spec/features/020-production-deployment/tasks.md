@@ -31,6 +31,7 @@ estado: "en curso"
 - [x] Ejecutar `cd apps/web && npm run lint` y corregir los incumplimientos de lint frontend.
 - [x] Ejecutar `cd apps/web && npm run test` y corregir los fallos de tests frontend.
 - [x] Ejecutar `cd apps/web && npm run build` y corregir los fallos de build frontend.
+- [x] Corregir `import file mismatch` del job `test-backend` de CI: instalar en editable (`pip install -e ".[dev]"`) en `lint-backend` y `test-backend`, y añadir `pythonpath = ["."]` a `[tool.pytest.ini_options]` de `apps/api/pyproject.toml` para resolver `app` desde el árbol fuente. Evidencia (venv limpio, instalación NO editable como el CI): `pytest` → 5 errores de colección (`import file mismatch` en `test_lookup.py`, `test_suggestions.py`, `test_book_suggestions.py`, `test_chat.py`, `test_isbn_lookup.py`); tras el fix, `pytest -q` → **231 passed**, `ruff check .` → **All checks passed**, `black --check .` → **51 files unchanged**, e instalación editable → **231 passed**.
 - [ ] Ejecutar `cd apps/api && docker build -t bookshelf-api .` y verificar que la imagen se construye correctamente. _(No ejecutable: Docker no está disponible en el entorno del implementador. Dockerfile revisado y conforme, sin cambios.)_
 - [x] Ejecutar `npm run verify:schema` desde la raíz como gate previo al despliegue y conservar evidencia de un resultado exitoso sin secretos.
 - [x] Actualizar documentación si aplica.
