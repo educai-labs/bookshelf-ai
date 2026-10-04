@@ -262,3 +262,57 @@ def test_cors_produccion_rechaza_origen_de_desarrollo():
     with pytest.raises(ValidationError) as exc_info:
         Settings(_env_file=None, app_env="production", **creds)
     assert "localhost" in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# Regresión feature 020 (incidencia Cloud Run): listas separadas por comas
+# desde variables de entorno reales.
+#
+# `pydantic-settings` intentaba `json.loads` sobre los campos `list` cuando el
+# valor procedía de una variable de entorno real (`EnvSettingsSource`). Con
+# `CORS_ORIGINS=https://a.example` (formato separado por comas, documentado en
+# `.env.example`) el `json.loads` fallaba y la app abortaba al arrancar en
+# Cloud Run. La anotación `NoDecode` en `cors_origins` y `trusted_proxy_ips`
+# respeta el formato separado por comas (el `field_validator`
+# `_split_comma_separated` ya se encarga de dividirlo).
+# ---------------------------------------------------------------------------
+
+
+def _clear_list_env(monkeypatch: pytest.MonkeyPatch, names: tuple[str, ...]) -> None:
+    """Elimina env vars para aislar el test del entorno real."""
+    for name in names:
+        monkeypatch.delenv(name, raising=False)
+
+
+def test_production_env_vars_cors_comma_no_json_decode(monkeypatch):
+    """Regresión: `CORS_ORIGINS` como env var real (producción) no se JSON-decodifica."""
+    _clear_list_env(
+        monkeypatch, ("APP_ENV", "CORS_ORIGINS", "TRUSTED_PROXY_IPS", "NEXT_PUBLIC_SITE_URL")
+    )
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SUPABASE_URL", "https://abc.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key")
+    monkeypatch.setenv("SUPABASE_JWT_SECRET", "jwt-secret")
+    monkeypatch.setenv("SUPABASE_JWKS_URL", "https://abc.supabase.co/auth/v1/.well-known/jwks.json")
+    monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
+    monkeypatch.setenv("NEXT_PUBLIC_SITE_URL", "https://a.example")
+    monkeypatch.setenv("CORS_ORIGINS", "https://a.example")
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.1,10.0.0.2")
+
+    s = Settings(_env_file=None)
+
+    assert s.app_env is AppEnv.production
+    assert s.cors_origins == ["https://a.example"]
+    assert s.trusted_proxy_ips == ["10.0.0.1", "10.0.0.2"]
+
+
+def test_env_vars_listas_comma_multiples_valores_no_json_decode(monkeypatch):
+    """Regresión: varias listas separadas por comas desde env vars reales (desarrollo)."""
+    _clear_list_env(monkeypatch, ("APP_ENV", "CORS_ORIGINS", "TRUSTED_PROXY_IPS"))
+    monkeypatch.setenv("CORS_ORIGINS", "https://a.example,https://b.example")
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.1, 10.0.0.2")
+
+    s = Settings(_env_file=None)
+
+    assert s.cors_origins == ["https://a.example", "https://b.example"]
+    assert s.trusted_proxy_ips == ["10.0.0.1", "10.0.0.2"]

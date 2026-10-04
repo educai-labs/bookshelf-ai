@@ -24,10 +24,10 @@ from __future__ import annotations
 
 from enum import Enum
 from functools import lru_cache
-from typing import ClassVar
+from typing import Annotated, ClassVar
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class AppEnv(str, Enum):
@@ -109,7 +109,13 @@ class Settings(BaseSettings):
     chat_stream_timeout_seconds: int = Field(default=60, gt=0)
 
     # --- 4. Frontend y CORS -------------------------------------------------
-    cors_origins: list[str] = Field(default_factory=lambda: [_DEV_CORS_DEFAULT])
+    # `NoDecode` evita que pydantic-settings intente `json.loads` sobre el valor
+    # de la variable de entorno: `CORS_ORIGINS` se define **separado por comas**
+    # (no JSON). Sin esto, una env var real tipo `CORS_ORIGINS=https://a.example`
+    # aborta el arranque en Cloud Run con `SettingsError` (JSONDecodeError).
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: [_DEV_CORS_DEFAULT]
+    )
     next_public_site_url: HttpUrl | None = None
     api_url: HttpUrl | None = None
     next_public_supabase_url: HttpUrl | None = None
@@ -134,7 +140,8 @@ class Settings(BaseSettings):
     max_request_body_size_mb: int = Field(default=10, gt=0)
     rate_limit_enabled: bool = False
     rate_limit_requests_per_minute: int = Field(default=60, gt=0)
-    trusted_proxy_ips: list[str] = Field(default_factory=list)
+    # Igual que `cors_origins`: separado por comas, no JSON (ver `NoDecode`).
+    trusted_proxy_ips: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
     # ------------------------------------------------------------------ hooks
 
