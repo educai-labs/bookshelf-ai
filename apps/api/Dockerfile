@@ -1,6 +1,7 @@
 # ============================================================
 # Bookshelf API — Dockerfile multi-stage
 # builder:  genera requirements.txt desde pyproject.toml e instala deps
+#           en un entorno virtual aislado (/opt/venv)
 # runtime:  python:3.11-slim, usuario no-root, healthcheck en /health
 # ============================================================
 
@@ -9,12 +10,23 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
+# Entorno Python aislado. Es imprescindible: `pip-tools` (necesario para
+# `pip-compile`) arrastra `click` como dependencia. Si se instalara en el
+# site-packages del sistema y luego se usara `pip install --prefix=/install`,
+# pip daría `click` por "ya instalado" y NO lo copiaría a la imagen runtime,
+# provocando `ModuleNotFoundError: No module named 'click'` al arrancar uvicorn.
+# Con el venv, pip-tools y TODAS las dependencias del proyecto (incluido `click`
+# y `h11` de uvicorn) quedan juntas en /opt/venv y se copian íntegras al runtime.
+ENV VIRTUAL_ENV=/opt/venv
+RUN python -m venv "$VIRTUAL_ENV"
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 # Genera requirements.txt desde pyproject.toml (PEP 621) y lo instala.
 COPY pyproject.toml .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir pip-tools \
     && pip-compile --no-header --no-emit-index-url -o requirements.txt pyproject.toml \
-    && pip install --no-cache-dir --prefix=/install -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt
 
 # ---- Stage 2: runtime ------------------------------------------------------
 FROM python:3.11-slim AS runtime
@@ -22,10 +34,14 @@ FROM python:3.11-slim AS runtime
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:$PATH"
 
-# Dependencias instaladas (sin build tools).
-COPY --from=builder /install /usr/local
+# Entorno Python con TODAS las dependencias (incluido click/h11 de uvicorn).
+# Se copia en la MISMA ruta absoluta (/opt/venv) para que los shebang de los
+# scripts de consola (uvicorn) y pyvenv.cfg sigan siendo válidos.
+COPY --from=builder /opt/venv /opt/venv
 
 # Código de la aplicación.
 COPY app ./app

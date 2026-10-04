@@ -1,0 +1,17 @@
+# Bookshelf API — contexto de build Docker
+# Evita enviar al daemon archivos locales que no deben formar parte de la
+# imagen (secretos, caches, artefactos) y mantiene el build reproducible.
+
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+.venv/
+venv/
