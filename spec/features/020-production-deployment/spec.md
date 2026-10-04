@@ -18,7 +18,8 @@ Configura despliegue en producción para ambos servicios, con una restricción d
 - Imagen Docker del API construida desde `apps/api/Dockerfile` (multi-stage), publicada en **Artifact Registry**.
 - Servicio Cloud Run en **`europe-west1`** (o `europe-southwest1`): runtime Docker, puerto 8000, health check `GET /health`. Expuesto por la **URL por defecto de Cloud Run** (`https://<servicio>-<hash>-<region>.run.app`), que se registra como `API_URL` en Vercel para el rewrite server-side del frontend.
 - Dimensiones: **1 vCPU / 512 MB**. Escalado: **scale-to-zero** (mín. 0 instancias, máx. 1 — sin autoscaling horizontal en MVP).
-- **CPU always allocated** habilitada (`--cpu-always-allocate`): sin ella Cloud Run congela la CPU de la instancia entre requests y **interrumpe las background tasks de vectorización de notas (feature 016)**. Mitigación obligatoria del riesgo de scale-to-zero.
+- **CPU always allocated** habilitada (`--no-cpu-throttling`, la flag real de `gcloud run deploy`; equivale a "CPU allocation: Always" en consola): sin ella Cloud Run congela la CPU de la instancia entre requests y **interrumpe las background tasks de vectorización de notas (feature 016)**. Mitigación obligatoria del riesgo de scale-to-zero.
+- **Service account de runtime**: la **cuenta de servicio por defecto de Compute** que asigna Cloud Run — no se crea ninguna SA dedicada para el servicio.
 - Env vars (coherentes con `.env.example` y feature 021; fail-fast si falta alguna obligatoria en producción): `APP_ENV=production`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_JWKS_URL`, `GEMINI_API_KEY`, `GOOGLE_BOOKS_API_KEY`, `LOG_LEVEL=INFO`, `LOG_FORMAT=json`, `CORS_ORIGINS=https://<proyecto>.vercel.app` (URL de producción por defecto de Vercel Hobby, sin dominio custom).
 - Base de datos: **Supabase managed free** (DB + Auth, ya configurado — no Cloud SQL).
 - Logs: **Cloud Logging** (stdout JSON estructurado, structlog).
@@ -48,9 +49,9 @@ Separación frontend (Vercel, edge, static optimizado) + backend (Cloud Run, Doc
 - [ ] Proyecto Vercel en plan **Hobby** (gratuito): `buildCommand`/`framework: "nextjs"` vía dashboard (o `apps/web/vercel.json` opcional), output `standalone`, preview deployments por cada PR y sitio servido en la **URL por defecto de Vercel Hobby** `https://<proyecto>.vercel.app` con SSL/HTTPS automático de la plataforma (sin dominio personalizado).
 - [ ] Env vars del frontend en Vercel coherentes con `.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` = `https://<proyecto>.vercel.app` (URL de producción de Vercel) y `API_URL` = la URL por defecto de Cloud Run (rewrite server-side). **Sin** `NEXT_PUBLIC_API_URL` (el frontend no la usa).
 - [ ] `apps/api/Dockerfile` multi-stage ya existente y verificado (`python:3.11-slim` builder → runtime, usuario no-root, `HEALTHCHECK` sobre `GET /health`, CMD uvicorn puerto 8000) sirve de base para la imagen publicada en **Artifact Registry**.
-- [ ] Servicio Cloud Run desplegado en `europe-west1` (o `europe-southwest1`) con 1 vCPU / 512 MB, mínimo 0 / máximo 1 instancias (scale-to-zero) y puerto 8000.
+- [ ] Servicio Cloud Run desplegado en `europe-west1` (o `europe-southwest1`) con 1 vCPU / 512 MB, mínimo 0 / máximo 1 instancias (scale-to-zero) y puerto 8000, usando la **service account por defecto de Compute** (sin SA dedicada).
 - [ ] El API es accesible por su **URL por defecto de Cloud Run** (`https://<servicio>-<hash>-<region>.run.app`) y ese valor exacto es el registrado como `API_URL` en Vercel para el rewrite `/api/v1/*` del frontend.
-- [ ] Cloud Run con **CPU always allocated** habilitada (`--cpu-always-allocate`).
+- [ ] Cloud Run con **CPU always allocated** habilitada (`--no-cpu-throttling`).
 - [ ] El endpoint `GET /health` (ya existente en el API) responde 200 < 1s en producción y lo usa Cloud Run como health check.
 - [ ] Test manual de background tasks: crear/editar una nota y dejar el servicio sin tráfico → la vectorización (feature 016) **no se interrumpe** (embedding queda escrito) gracias a CPU always allocated.
 - [ ] Env vars del backend en Cloud Run coherentes con `.env.example`/feature 021 (incl. `APP_ENV=production`, `SUPABASE_JWKS_URL` explícita y `LOG_FORMAT=json`); la app falla al arranque si falta alguna obligatoria (fail-fast).
