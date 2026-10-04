@@ -148,3 +148,26 @@ jobs:
         uses: actions/checkout@v4
       - name: Build Docker image
         run: docker build -t bookshelf-api .
+      # Smoke test: arranca el contenedor sin variables de entorno (modo
+      # development) y comprueba que `GET /health` responde 200. Detecta en PR
+      # fallos de la imagen (p. ej. dependencias ausentes como `click` de
+      # uvicorn) que de otro modo solo aparecerían al desplegar en Cloud Run.
+      - name: Smoke test (GET /health -> 200)
+        run: |
+          CONTAINER="bookshelf-api-smoke"
+          docker run -d --name "$CONTAINER" -p 18080:8000 bookshelf-api
+          # Limpia el contenedor siempre, también si el smoke test falla.
+          cleanup() { docker rm -f "$CONTAINER" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          # Espera a que la app responda (hasta ~60s; arranque + health check).
+          code=""
+          for i in $(seq 1 30); do
+            if code="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18080/health 2>/dev/null)"; then
+              [ "$code" = "200" ] && break
+            fi
+            sleep 2
+          done
+          echo "GET /health -> ${code:-timeout}"
+          # Logs del contenedor para diagnóstico (sin secretos: solo arranque).
+          docker logs "$CONTAINER" 2>&1 | tail -n 40 || true
+          [ "$code" = "200" ]
