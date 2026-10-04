@@ -1,0 +1,115 @@
+# ============================================================
+# Bookshelf — Deploy (feature 020 · Production Deployment)
+# ============================================================
+# Se ejecuta en push/merge a `main`. El job `deploy` depende del job `ci`
+# (`needs: ci`), que reutiliza `.github/workflows/ci.yml`; por tanto, el
+# despliegue solo se lanza si lint/test/build pasan.
+#
+# Orden del job `deploy`:
+#   1. Gate de esquema: `npm run verify:schema` (contra Supabase remoto).
+#   2. Autenticación a Google Cloud vía Workload Identity Federation (OIDC),
+#      sin claves de cuenta de servicio (permiso `id-token: write`).
+#   3. Build + push de la imagen a Artifact Registry.
+#   4. `gcloud run deploy` en `europe-west1` con scale-to-zero y CPU always
+#      allocated (preserva la vectorización de notas de la feature 016).
+#
+# El frontend NO se despliega desde aquí: la integración Git de Vercel genera
+# los previews por PR y la producción al fusionar en `main`. No hay pipeline
+# de Vercel ni `VERCEL_TOKEN` en este repositorio.
+# ============================================================
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Permisos mínimos: solo lectura del repo + OIDC token para WIF.
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_REGION: europe-west1 # o europe-southwest1 (decidir antes del alta)
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  ARTIFACT_REGISTRY: ${{ vars.ARTIFACT_REGISTRY }}
+  CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+
+jobs:
+  # Job `ci`: reutiliza el workflow de CI para que `deploy` pueda declarar
+  # `needs: ci` sin duplicar los pasos de lint/test/build.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy backend to Cloud Run
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Prepare venv for verify:schema
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --quiet supabase httpx psycopg
+
+      # ------------------------------------------------------------------
+      # Gate previo al despliegue: verifica el esquema remoto de Supabase.
+      # El script redacta secretos/URLs y falla (exit 1) si falta algún objeto
+      # o hay error de red/auth. No autoaplica migraciones (remedio manual:
+      # `supabase db push --include-all` + `npm run verify:schema`).
+      # ------------------------------------------------------------------
+      - name: Verify remote schema (gate)
+        run: npm run verify:schema
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+      # ------------------------------------------------------------------
+      # Autenticación OIDC: credenciales federadas de corta duración. Sin
+      # JSON keys, .pem ni GOOGLE_APPLICATION_CREDENTIALS.
+      # ------------------------------------------------------------------
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "$GCP_REGION-docker.pkg.dev" --quiet
+
+      - name: Build and push image to Artifact Registry
+        run: |
+          IMAGE="$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$ARTIFACT_REGISTRY/bookshelf-api"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          docker build -t "$IMAGE:$GITHUB_SHA" apps/api
+          docker push "$IMAGE:$GITHUB_SHA"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "$CLOUD_RUN_SERVICE" \
+            --image="$IMAGE:$GITHUB_SHA" \
+            --region="$GCP_REGION" \
+            --port=8000 \
+            --cpu=1 \
+            --memory=512Mi \
+            --min-instances=0 \
+            --max-instances=1 \
+            --cpu-always-allocate \
+            --allow-unauthenticated

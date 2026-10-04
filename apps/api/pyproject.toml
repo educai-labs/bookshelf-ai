@@ -36,6 +36,12 @@ asyncio_mode = "auto"
 # Tests en `tests/` (integración) + tests colocalizados en `app/` (unitarios,
 # convención tech-stack: `test_foo.py` junto al archivo).
 testpaths = ["tests", "app"]
+# Fuerza a resolver el paquete `app` desde el árbol fuente (apps/api) y no
+# desde `site-packages`. Evita `import file mismatch` cuando el paquete se
+# instaló en modo NO editable (`pip install ".[dev]"`), que copia los
+# `test_*.py` colocalizados a `site-packages` y choca con el árbol fuente.
+# (feature 020 · CI: job `test-backend`.)
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100

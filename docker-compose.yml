@@ -1,0 +1,81 @@
+# ============================================================
+# Bookshelf — Docker Compose (desarrollo local opcional)
+# ============================================================
+# Levanta backend FastAPI y frontend Next.js en contenedores locales:
+#   - API: http://localhost:8000  (health check: GET /health)
+#   - Web: http://localhost:3000  (rewrite /api/v1/* → API)
+#
+# Variables: se cargan desde `.env.local` (raíz). Cópialo desde `.env.example`
+# y rellena los valores reales. NUNCA subas `.env.local` ni secretos al repo.
+#
+# Uso:
+#   cp .env.example .env.local        # rellena los valores reales
+#   docker compose up --build
+#
+# Notas:
+# - Supabase se usa como servicio gestionado (remoto); el servicio `supabase`
+#   local queda como referencia opcional y NO es requisito de producción.
+# - El build del frontend in-linea las variables NEXT_PUBLIC_* (build args con
+#   valores por defecto no secretos; se sobrescriben con lo que haya en el
+#   entorno/`.env.local` mediante `${VAR:-default}`).
+# ============================================================
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: bookshelf-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.local
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status==200 else 1)",
+        ]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://ci-placeholder.supabase.co}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-ci-placeholder-anon-key}
+    container_name: bookshelf-web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      # El rewrite server-side de next.config.mjs debe apuntar al contenedor
+      # `api` de esta red (no a localhost del host).
+      API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Supabase local (opcional, solo referencia) ---------------------------
+  # El proyecto usa Supabase como servicio gestionado (remoto). Si se desea un
+  # entorno local, descomenta y adapta (imagen `supabase/postgres` + migraciones
+  # del directorio `supabase/`). No es requisito de producción.
+  # supabase:
+  #   image: supabase/postgres:15.1.0.147
+  #   container_name: bookshelf-supabase
+  #   ports:
+  #     - "54322:5432"
+  #   environment:
+  #     POSTGRES_PASSWORD: postgres
