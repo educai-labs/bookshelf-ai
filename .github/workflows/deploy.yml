@@ -111,5 +111,5 @@ jobs:
             --memory=512Mi \
             --min-instances=0 \
             --max-instances=1 \
-            --cpu-always-allocate \
+            --no-cpu-throttling \
             --allow-unauthenticated

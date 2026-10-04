@@ -68,13 +68,14 @@ al cliente. **No existe `NEXT_PUBLIC_API_URL`.**
    - **1 vCPU / 512 MB**, mínimo **0** instancias, máximo **1** (scale-to-zero,
      sin autoscaling horizontal).
    - Puerto **8000**, health check **`GET /health`**.
-   - **CPU always allocated** (`--cpu-always-allocate`) — imprescindible para no
+   - **CPU always allocated** (`--no-cpu-throttling`) — imprescindible para no
      congelar la CPU entre requests y no interrumpir la vectorización de notas
      (feature 016).
    - **Acceso**: permitir invocaciones no autenticadas (la auth real es el JWT
      de Supabase en la app) para que el rewrite de Vercel lo alcance.
-4. **Service account de runtime** con solo los permisos necesarios (acceso a
-   Artifact Registry y a Cloud Run); activa **Cloud Logging**.
+4. **Service account de runtime**: Cloud Run usa la **cuenta de servicio por
+   defecto de Compute** del proyecto — **no se crea ninguna SA dedicada** para
+   el servicio. Activa **Cloud Logging**.
 5. Env vars de Cloud Run (Settings → Variables):
 
    | Variable | Valor |
@@ -107,8 +108,8 @@ Configura la federación:
    autorizados.
 2. Crea una **service account de despliegue** con permisos mínimos sobre
    Artifact Registry (`roles/artifactregistry.writer`) y Cloud Run
-   (`roles/run.admin` + `roles/iam.serviceAccountUser` sobre la service account
-   de runtime).
+   (`roles/run.admin` + `roles/iam.serviceAccountUser` sobre la cuenta de
+   servicio por defecto de Compute).
 3. Guarda en GitHub como **Variables** (no secretos):
    `GCP_PROJECT_ID`, `ARTIFACT_REGISTRY`, `CLOUD_RUN_SERVICE`,
    `WIF_PROVIDER` (recurso completo del provider) y `WIF_SERVICE_ACCOUNT`
@@ -131,7 +132,7 @@ Configura la federación:
   2. **Autenticación** a Google Cloud vía `google-github-actions/auth` (WIF).
   3. **Build + push** de la imagen a Artifact Registry.
   4. **`gcloud run deploy`** con `--port=8000 --cpu=1 --memory=512Mi
-     --min-instances=0 --max-instances=1 --cpu-always-allocate`.
+     --min-instances=0 --max-instances=1 --no-cpu-throttling`.
 
 El job `deploy` usa `environment: production`. En ese *environment* de GitHub se
 definen los **Secrets** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y
@@ -253,5 +254,5 @@ aplicada; crea una migración nueva numerada si hace falta.
    `GET /health` responde **200 < 1s**.
 4. Crea/edita una nota y deja el servicio **sin tráfico**: la vectorización
    (feature 016) debe **terminar** y el embedding quedar persistido (gracias a
-   `--cpu-always-allocate`).
+   `--no-cpu-throttling`).
 5. Revisa Cloud Logging y Vercel Logs: logs JSON visibles y sin secretos.
