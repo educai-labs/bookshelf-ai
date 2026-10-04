@@ -343,6 +343,17 @@ async def test_db_error_no_retry(configure, fake_db):
     assert [op["op"] for op in fake_db.ops] == ["delete"]  # sin reintento
 
 
+async def test_db_unavailable_no_write(configure, fake_db, monkeypatch):
+    """Cliente Supabase no inicializado (`None`) → log de indisponibilidad, sin escrituras ni excepción."""
+    configure(embed_fn=_fake_embed)
+    monkeypatch.setattr("app.services.vectorization.get_supabase_client", lambda: None)
+
+    # No debe lanzar: la tarea registra la indisponibilidad y termina sin escribir.
+    await v.vectorize_note(NOTE_ID, USER_ID, BOOK_ID, "nota sin cliente db")
+
+    assert fake_db.ops == []
+
+
 async def test_embeddings_shape_mismatch_no_write(configure, fake_db):
     """Respuesta con número/dimensión incorrecta → sin tocar la base de datos."""
 

@@ -4,50 +4,72 @@
 
 ## Qué hace
 
-Configura despliegue en producción para ambos servicios:
+Configura despliegue en producción para ambos servicios, con una restricción dura de **coste 0 EUR/mes** apoyada en free tiers.
 
-**Frontend → Vercel**:
-- Conecta repo GitHub → Vercel project.
-- Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_API_URL` (URL Render backend).
+**Frontend → Vercel (plan Hobby, gratuito)**:
+- Conecta repo GitHub → Vercel project (plan **Hobby**, uso no comercial).
+- Env vars (coherentes con `.env.example` de la raíz): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` y `API_URL` — esta última es el destino del **rewrite server-side** de `next.config.mjs` (`/api/v1/*` → backend). El frontend **NO** usa `NEXT_PUBLIC_API_URL`.
 - Build command: `npm run build` (output `standalone` en `next.config.mjs`).
 - Preview deployments en PRs.
 - Custom domain: `bookshelf.educai.dev` (o similar) + SSL automático.
-- Edge Config / Middleware para rate limiting básico (opcional).
+- Rate limiting básico: se hace en backend (feature 021), no en edge — sin add-ons de pago del plan Hobby.
 
-**Backend → Render**:
-- Dockerfile multi-stage (builder → runtime python:3.11-slim).
-- Render Web Service: Docker runtime, puerto 8000, health check `GET /health`.
-- Env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `GEMINI_API_KEY`, `GOOGLE_BOOKS_API_KEY`, `LOG_LEVEL=INFO`, `CORS_ORIGINS=https://bookshelf.educai.dev`.
-- Autoscaling: min 1, max 3 instancias (CPU/memory based).
-- Base de datos: **Supabase managed** (ya configurado, no Render PG).
-- Logs: Render logs + estructurados JSON (structlog).
+**Backend → Google Cloud Run (región europea)**:
+- Imagen Docker del API construida desde `apps/api/Dockerfile` (multi-stage), publicada en **Artifact Registry**.
+- Servicio Cloud Run en **`europe-west1`** (o `europe-southwest1`): runtime Docker, puerto 8000, health check `GET /health`.
+- Dimensiones: **1 vCPU / 512 MB**. Escalado: **scale-to-zero** (mín. 0 instancias, máx. 1 — sin autoscaling horizontal en MVP).
+- **CPU always allocated** habilitada (`--cpu-always-allocate`): sin ella Cloud Run congela la CPU de la instancia entre requests y **interrumpe las background tasks de vectorización de notas (feature 016)**. Mitigación obligatoria del riesgo de scale-to-zero.
+- Env vars (coherentes con `.env.example` y feature 021; fail-fast si falta alguna obligatoria en producción): `APP_ENV=production`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_JWKS_URL`, `GEMINI_API_KEY`, `GOOGLE_BOOKS_API_KEY`, `LOG_LEVEL=INFO`, `LOG_FORMAT=json`, `CORS_ORIGINS=https://bookshelf.educai.dev`.
+- Base de datos: **Supabase managed free** (DB + Auth, ya configurado — no Cloud SQL).
+- Logs: **Cloud Logging** (stdout JSON estructurado, structlog).
 
-**CI/CD → GitHub Actions**:
-- Workflow `ci.yml`: en PR/push a main → lint (frontend + backend), test (frontend + backend), build (Docker backend).
-- Workflow `deploy.yml`: en merge a main → deploy backend a Render (via Render Deploy Hook o `render.com` action), deploy frontend a Vercel (auto via Vercel Git integration).
-- Secrets en GitHub: `RENDER_API_KEY`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, plus todas las env vars de producción.
+**CI/CD → GitHub Actions (sin secretos de larga duración)**:
+- Workflow `ci.yml`: en PR/push a main → lint (frontend + backend), test (frontend + backend), build (imagen Docker del backend).
+- Workflow `deploy.yml`: en merge a main → build + push de la imagen a Artifact Registry y `gcloud run deploy` del servicio; frontend auto-desplegado vía Vercel Git integration.
+- Autenticación a Google Cloud mediante **Workload Identity Federation (OIDC)**: sin claves de cuenta de servicio ni `RENDER_API_KEY` en GitHub Secrets. El deploy a Vercel no requiere `VERCEL_TOKEN` (integración Git). Las env vars de producción viven en Cloud Run y Vercel, no en el repo ni en Secrets de GitHub.
+
+**Coste 0 EUR/mes (restricción dura)** — límites de cada free tier y consecuencia al superarlos (documentados en `DEPLOY.md`):
+
+| Recurso | Límite free tier | Qué ocurre al superarlo |
+|---|---|---|
+| Vercel Hobby | Uso no comercial, ancho de banda y build time dentro de fair use | Vercel solicita subir a Pro (pago); no factura automáticamente |
+| Google Cloud Run | 2M requests + 180.000 vCPU-s + 360.000 GiB-s al mes | Google factura el exceso a la cuenta de billing (obligatoria aunque el coste sea 0) |
+| Supabase free | 500 MB DB, 1 GB storage, 50K usuarios activos/mes; pausa del proyecto tras 1 semana de inactividad | Pide subir de plan; proyecto pausado se reactiva manualmente |
+| Gemini API free tier | Cuotas RPM/RPD por modelo (chat + embeddings) | HTTP 429 al exceder cuota (frontend/backend muestran error y reintentan con backoff) |
+
+- Salvaguarda: **alerta de presupuesto de 0 USD/mes** en la cuenta de billing de Google Cloud.
 
 ## Por qué
 
-Separación frontend (Vercel, edge, static optimizado) + backend (Render, Docker, long-running) es arquitectura estándar moderna. Supabase gestiona DB/Auth — no hay que operar PostgreSQL. CI/CD automatiza calidad y despliegue. Preview deployments en PRs permiten revisión visual antes de merge.
+Separación frontend (Vercel, edge, static optimizado) + backend (Cloud Run, Docker, scale-to-zero) es arquitectura estándar moderna y **cumple la restricción dura de coste 0 EUR/mes**: Cloud Run escala a cero cuando no hay tráfico y su free tier (2M requests, 180.000 vCPU-s, 360.000 GiB-s) cubre holgadamente un MVP personal, igual que Vercel Hobby, Supabase free y Gemini free tier. La región europea acerca los datos a los usuarios. Cloud Run comparte ecosistema Google con Gemini y permite despliegue con imagen Docker estándar (sin vendor lock-in de la lógica de negocio). OIDC (Workload Identity Federation) elimina secretos de larga duración. Supabase gestiona DB/Auth — no hay que operar PostgreSQL. CI/CD automatiza calidad y despliegue; preview deployments en PRs permiten revisión visual antes de merge.
 
 ## Criterios de aceptación
 
-- [ ] `apps/web/vercel.json` (opcional) o config vía dashboard: `buildCommand`, `outputDirectory`, `framework: "nextjs"`.
-- [ ] `apps/api/Dockerfile` multi-stage: `FROM python:3.11-slim AS builder` (instala deps, compila) → `FROM python:3.11-slim` (copia artifacts, usuario no-root, `CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]`).
+- [ ] Proyecto Vercel en plan **Hobby** (gratuito): `buildCommand`/`framework: "nextjs"` vía dashboard (o `apps/web/vercel.json` opcional), output `standalone`, preview deployments en PRs y custom domain `bookshelf.educai.dev` con SSL.
+- [ ] Env vars del frontend en Vercel coherentes con `.env.example`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` y `API_URL` (rewrite server-side). **Sin** `NEXT_PUBLIC_API_URL` (el frontend no la usa).
+- [ ] `apps/api/Dockerfile` multi-stage ya existente y verificado (`python:3.11-slim` builder → runtime, usuario no-root, `HEALTHCHECK` sobre `GET /health`, CMD uvicorn puerto 8000) sirve de base para la imagen publicada en **Artifact Registry**.
+- [ ] Servicio Cloud Run desplegado en `europe-west1` (o `europe-southwest1`) con 1 vCPU / 512 MB, mínimo 0 / máximo 1 instancias (scale-to-zero) y puerto 8000.
+- [ ] Cloud Run con **CPU always allocated** habilitada (`--cpu-always-allocate`).
+- [ ] El endpoint `GET /health` (ya existente en el API) responde 200 < 1s en producción y lo usa Cloud Run como health check.
+- [ ] Test manual de background tasks: crear/editar una nota y dejar el servicio sin tráfico → la vectorización (feature 016) **no se interrumpe** (embedding queda escrito) gracias a CPU always allocated.
+- [ ] Env vars del backend en Cloud Run coherentes con `.env.example`/feature 021 (incl. `APP_ENV=production`, `SUPABASE_JWKS_URL` explícita y `LOG_FORMAT=json`); la app falla al arranque si falta alguna obligatoria (fail-fast).
+- [ ] CORS en backend: `allow_origins=[os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]`, con `CORS_ORIGINS` de producción solo en dominios oficiales (nunca `*`).
+- [ ] Logs JSON estructurados del backend visibles en **Cloud Logging**; logs del frontend visibles en Vercel. Sin secretos en logs.
+- [ ] `.github/workflows/ci.yml`: jobs `lint-frontend`, `lint-backend`, `test-frontend`, `test-backend`, `build-backend` en PR y push a main.
+- [ ] `.github/workflows/deploy.yml`: `needs: ci`, `if: github.ref == 'refs/heads/main'` → push de imagen a Artifact Registry + `gcloud run deploy`; frontend auto vía Vercel Git integration.
+- [ ] Autenticación del deploy a Google Cloud vía **Workload Identity Federation (OIDC)**: sin claves de cuenta de servicio ni secretos de larga duración en GitHub Secrets (permiso `id-token: write` en el workflow).
+- [ ] Coste 0 EUR/mes verificado al cierre del primer mes: `DEPLOY.md` documenta los límites de cada free tier y qué ocurre al superarlos; alerta de presupuesto 0 USD activa en la cuenta de billing.
 - [ ] `docker-compose.yml` en raíz para dev local opcional (api + web + opcional supabase local).
-- [ ] `.github/workflows/ci.yml`: jobs `lint-frontend`, `lint-backend`, `test-frontend`, `test-backend`, `build-backend` (push image a GHCR opcional).
-- [ ] `.github/workflows/deploy.yml`: `needs: ci`, `if: github.ref == 'refs/heads/main'` → Render deploy hook + Vercel deploy (auto).
-- [ ] Health check backend: `GET /health` retorna 200 < 1s en producción.
-- [ ] CORS en backend: `allow_origins=[os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]`.
-- [ ] Verificación manual: PR → preview Vercel URL funcional; merge → producción en `bookshelf.educai.dev` + API en `api.bookshelf.educai.dev` (o subpath).
-- [ ] Documentación `DEPLOY.md` con pasos, variables, rollback (Render rollback deploy, Vercel instant rollback).
+- [ ] Verificación manual: PR → preview Vercel URL funcional; merge → producción en `bookshelf.educai.dev` con la API alcanzable vía rewrite `/api/v1/*`.
+- [ ] Documentación `DEPLOY.md` con pasos, variables, rollback (Cloud Run: apuntar tráfico a la revisión anterior; Vercel: instant rollback) y límites de free tiers.
 
 ## Fuera de alcance
 
-- Observabilidad avanzada (Sentry, Datadog, Prometheus/Grafana) — logs Render + Vercel suficientes para MVP.
-- CDN / Edge caching para assets (Vercel lo hace automático).
-- Blue/green deployments / canary — Render rolling deploy + Vercel atomic deploy cubren.
-- Backup/Restore Supabase (gestionado por Supabase).
-- Infraestructura as Code (Terraform/Pulumi) — config vía dashboards para MVP.
+- **Cloud SQL** / PostgreSQL auto-gestionado — la DB es Supabase managed (free).
+- Observabilidad avanzada (Sentry, Datadog, Prometheus/Grafana) — Cloud Logging + Vercel logs suficientes para MVP (`SENTRY_DSN` queda reservado en 021).
+- CDN avanzado / edge caching más allá de lo que Vercel Hobby da por defecto (Cloud CDN, reglas custom).
+- **Autoscaling horizontal** en Cloud Run (más de 1 instancia) — contradice la restricción de coste 0 EUR/mes.
+- Blue/green deployments / canary con traffic splitting — revisiones de Cloud Run (rollback a revisión anterior) + atomic deploy de Vercel cubren el MVP.
+- Backup/Restore Supabase (gestionado por Supabase; límites del plan free documentados en `DEPLOY.md`).
+- Infraestructura as Code (Terraform/Pulumi) — config vía `gcloud` y dashboards para MVP.
 - Staging environment separado — preview deployments sirven de staging.

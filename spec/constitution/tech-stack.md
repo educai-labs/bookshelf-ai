@@ -16,7 +16,7 @@ _Cómo está construido el proyecto y las reglas que todo el código debe respet
 - **ISBN Lookup:** Open Library API (primario), Google Books API (fallback)
 - **Tests:** Vitest + React Testing Library (frontend), pytest + httpx (backend), pytest-asyncio
 - **Lint/Format:** ESLint + Prettier (frontend), Ruff + Black (backend)
-- **Despliegue:** Vercel (Next.js), Render (FastAPI Docker), Supabase (managed PG)
+- **Despliegue:** Vercel plan Hobby (gratuito) para Next.js, Google Cloud Run (free tier, scale-to-zero, CPU always allocated) para FastAPI Docker, Supabase (managed PG) — restricción de coste 0 EUR/mes apoyada en free tiers
 - **CI/CD:** GitHub Actions (lint, test, build, deploy preview)
 
 ## Archivos / módulos clave

@@ -26,10 +26,17 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 20. **023 · Search Suggestions** — Typeahead en vivo por título/autor/ISBN en el buscador del dashboard (013) y el modal de alta (014); endpoint nuevo `GET /api/v1/books/suggestions` con merge de biblioteca + catálogo externo (008 extendido), debounce 300ms, mín 3 chars, máx 8 sugerencias, dedup por ISBN13 y fail-soft a biblioteca.
 21. **024 · Schema Migration Verification** — `npm run verify:schema` valida el esquema remoto objeto a objeto (tablas `books`/`book_notes`/`account_preferences`, RPC `match_book_notes`, extensión `vector`, índice HNSW) con exit 0/1 y mapea `PGRST205`/`PGRST202` → 503 `DB_MIGRATION_MISSING` accionable; convención SDD de aplicar y verificar migraciones con evidencia.
 22. **025 · ISBN Lookup Fallback (search.json)** — Fallback intermedio en `ISBNLookupService.buscar()` (008) a `openlibrary.org/search.json?q=isbn:<isbn>` —misma fuente que 023— cuando `/api/books` no devuelve metadatos completos, antes de Google Books. Reutiliza caché 1 h, timeout y reintentos existentes; `published_date` desde `first_publish_year`. Corrige 404s de ISBNs existentes (ej. 9780684838724) que cortaban el alta del modal 014; `GET /lookup` y `POST /books` (009) lo heredan sin cambios de contrato.
+23. **031 · Fix API Startup — get_supabase_client** — Fix bloqueante de arranque: helper nullable `get_supabase_client() -> Client | None` en `app/core/database.py` (devuelve el singleton sin lanzar); `vectorization.py` (016) y sus tests consumen el nombre real; degradación elegante de 016 intacta. Validación: `uvicorn` arranca sin ImportError, `pytest -v` 100%, `ruff`+`black` limpios.
 
 ## Siguiente 🔜
 
 _Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez._
+
+23. **026 · Add Book Reload & Dashboard Errors** — Fixes de auditoría Z2-01…Z2-11 + Z1-01/02: recarga real de la biblioteca tras el alta por ISBN (invalidación que llega al grid), modal que se recupera de errores y se cierra en éxito (toast i18n `addBook.saveSuccess`), dashboard que distingue ErrorState de EmptyState y error de "Cargar más" no destructivo; limpieza del flujo (mapa de errores único, a11y, código muerto).
+24. **027 · Book Detail & Notes Polish** — Fixes Z3-01…Z3-10/12/13: previsualización de notas que renderiza Markdown de verdad, fuente de datos de notas unificada y paginada (nota 51+ visible), ficha robusta ante fallos de red, tipos compartidos y limpieza de props/invalidaciones muertas + teclado en estrellas.
+25. **028 · Navigation & Layout Robustness** — Fixes Z5-01…Z5-09 + Z1-03/04: item "Libros" sin 404, `error.tsx`/`not-found.tsx`/`global-error.tsx`, sidebar drawer en móvil con `aria-current`, `redirectTo` respetado tras login (validado, sin open redirects), 401→login con status preservado, paridad título+autor en el seed SSR y ConfirmDialog desacoplado a `components/ui`.
+26. **029 · Chat AI Perf & A11y** — Fixes Z4-01…Z4-09: historial sin serializar en cada token (debounce/fin de stream), Markdown memoizado por mensaje, AbortController + botón "Detener", `aria-live`/`role="status"` y keys estables, `rel="noopener noreferrer"` en el sanitize y Alert de error con título y reintento.
+27. **030 · Visual Consistency Polish** — Fixes Z1-05…Z1-09 + Z3-11: constante única de page size, filtros del dashboard sincronizados con la URL (compartir/bookmark/atrás), fallback de autores unificado, mapa único status→badge, BookCard con `<Link>` (prefetch) y un solo primitivo de estrellas.
 
 ## Backlog / ideas 💡
 
