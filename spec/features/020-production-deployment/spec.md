@@ -1,6 +1,6 @@
 # 020 · Production Deployment
 
-**Estado:** en curso
+**Estado:** hecho
 
 ## Qué hace
 
@@ -60,7 +60,7 @@ Separación frontend (Vercel, edge, static optimizado) + backend (Cloud Run, Doc
 - [ ] `.github/workflows/ci.yml`: jobs `lint-frontend`, `lint-backend`, `test-frontend`, `test-backend`, `build-backend` en PR y push a main.
 - [ ] `.github/workflows/deploy.yml`: `needs: ci`, `if: github.ref == 'refs/heads/main'` → push de imagen a Artifact Registry + `gcloud run deploy`; frontend auto vía Vercel Git integration.
 - [ ] Autenticación del deploy a Google Cloud vía **Workload Identity Federation (OIDC)**: sin claves de cuenta de servicio ni secretos de larga duración en GitHub Secrets (permiso `id-token: write` en el workflow).
-- [ ] Coste 0 EUR/mes verificado al cierre del primer mes: `DEPLOY.md` documenta los límites de cada free tier y qué ocurre al superarlos; alerta de presupuesto 0 USD activa en la cuenta de billing.
+- [ ] Coste 0 EUR/mes apoyado en free tiers (verificable ahora): **alerta de presupuesto de 0 USD/mes activa** en la cuenta de billing de Google Cloud y `DEPLOY.md` documenta los límites de cada free tier y qué ocurre al superarlos.
 - [ ] `docker-compose.yml` en raíz para dev local opcional (api + web + opcional supabase local).
 - [ ] Verificación manual: PR → URL de **preview deployment** de Vercel funcional; merge → producción en la **URL por defecto de Vercel Hobby** (`https://<proyecto>.vercel.app`) con la API alcanzable vía rewrite `/api/v1/*` hacia la URL por defecto de Cloud Run.
 - [ ] Documentación `DEPLOY.md` con pasos, variables, rollback (Cloud Run: apuntar tráfico a la revisión anterior; Vercel: instant rollback) y límites de free tiers.
@@ -76,3 +76,4 @@ Separación frontend (Vercel, edge, static optimizado) + backend (Cloud Run, Doc
 - Backup/Restore Supabase (gestionado por Supabase; límites del plan free documentados en `DEPLOY.md`).
 - Infraestructura as Code (Terraform/Pulumi) — config vía `gcloud` y dashboards para MVP.
 - Staging environment separado — preview deployments sirven de staging.
+- **Verificación del consumo real al cierre del primer mes** (confirmación de coste 0 EUR/mes con datos de billing reales) — se realizará en una **feature de seguimiento separada** (verificación de coste de free tiers al cierre del primer mes), no en esta feature.

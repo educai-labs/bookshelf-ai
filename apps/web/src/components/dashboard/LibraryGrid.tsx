@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAddBookModal } from "@/components/books/AddBookModalProvider";
 import { useBooks } from "@/lib/hooks/useBooks";
@@ -75,9 +77,11 @@ export function LibraryGrid({
     isLoading,
     isLoadingMore,
     error,
+    loadMoreError,
     hasMore,
     loadMore,
     retry,
+    retryLoadMore,
   } = useBooks(filters, { initialBooks, initialTotal });
 
   function handleStatusChange(value: StatusFilterValue) {
@@ -162,6 +166,24 @@ export function LibraryGrid({
                 isLoadingMore={isLoadingMore}
                 hasMore={hasMore}
               />
+            </div>
+          )}
+          {loadMoreError && (
+            <div className="mt-4" data-testid="load-more-error">
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {t("dashboard.loadMoreError")}
+                </AlertDescription>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => void retryLoadMore()}
+                  data-testid="retry-load-more"
+                >
+                  {t("common.retry")}
+                </Button>
+              </Alert>
             </div>
           )}
           <p className="mt-4 text-center text-sm text-muted-foreground">

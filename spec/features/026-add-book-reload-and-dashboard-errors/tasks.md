@@ -1,0 +1,59 @@
+---
+estado: "hecho"
+---
+
+# 026 · Add Book Reload & Dashboard Errors — Tareas
+
+- [x] Revisar las claves i18n consumidas por el flujo de alta y dashboard en `apps/web/src/lib/i18n/dictionaries.ts`.
+- [x] Añadir `addBook.saveSuccess` con texto de confirmación en los diccionarios español e inglés.
+- [x] Añadir las claves necesarias para comunicar errores y reintentos de paginación en ambos diccionarios, si el diseño final las requiere.
+- [x] Crear el helper compartido de mapeo de errores HTTP en `apps/web/src/lib/api/errors.ts`.
+- [x] Implementar en el helper el mapeo único para estados 400/404/409/500 y el fallback genérico.
+- [x] Hacer que `useAddBook` consuma el helper compartido para sus errores de guardado.
+- [x] Hacer que `AddBookModal` consuma el mismo helper para sus errores de lookup.
+- [x] Añadir tests unitarios del helper para los códigos HTTP soportados y el fallback.
+- [x] Migrar `apps/web/src/lib/hooks/useBooks.ts` a la API de React Query sin cambiar el contrato público necesario.
+- [x] Construir la clave de query de libros con filtros efectivos y tamaño de página.
+- [x] Conservar en `useBooks` el debounce de búsqueda, filtros, paginación, append ordenado, total y `hasMore`.
+- [x] Configurar la query para que el prefijo `['books']` permita invalidar y refetchar los resultados del grid.
+- [x] Integrar `initialBooks` e `initialTotal` como seed inicial de la primera página para conservar SSR e hidratación sin flash de skeleton.
+- [x] Preservar el estado visual de filtros durante la invalidación o refetch posterior al alta.
+- [x] Separar en `useBooks` el error de primera carga del error de `loadMore`.
+- [x] Limpiar el error inicial al reintentar o cambiar filtros.
+- [x] Conservar los libros existentes cuando falle la carga de una página adicional.
+- [x] Exponer desde `useBooks` el error de paginación y una acción de reintento específica.
+- [x] Actualizar los tests de `useBooks` para seed SSR, hidratación lógica, filtros, invalidación y fallo de segunda página.
+- [x] Ajustar `LibraryGrid` para mostrar `ErrorState` únicamente ante fallo de la primera carga.
+- [x] Mantener `EmptyState` para una primera respuesta exitosa con `items=[]`.
+- [x] Mostrar el error de `loadMore` como aviso inline o toast no destructivo con acción de reintento.
+- [x] Verificar en `LibraryGrid` que los libros, contador y grid permanecen visibles tras un fallo de paginación.
+- [x] Añadir o actualizar tests de `LibraryGrid` para error inicial, lista vacía, retry y fallo de segunda página.
+- [x] Configurar `useAddBook` para invalidar el prefijo de libros al completar correctamente el POST 201.
+- [x] Hacer que `useAddBook` use `t('addBook.saveSuccess')` para la notificación de éxito.
+- [x] Coordinar el éxito de `useAddBook` con el cierre del modal mediante `onOpenChange(false)`.
+- [x] Hacer que el error de guardado abandone el estado `saving` y vuelva a un estado operativo de corrección o reintento.
+- [x] Conservar `lookupData` y `lookupIsbn` después de un fallo de guardado.
+- [x] Permitir un segundo intento de guardado sin repetir el lookup de ISBN.
+- [x] Actualizar `AddBookModal` para mostrar los estados de error, corrección y reintento del guardado.
+- [x] Añadir tests de `useAddBook` y `AddBookModal` con fetch/mutación simulados para 400, 404, 409, 500, rechazo de red, éxito 201 y reintento.
+- [x] Verificar en los tests del modal la conservación de metadatos y la llamada a `onOpenChange(false)` en éxito.
+- [x] Corregir el efecto de apertura con ISBN inicial usando dependencias completas y una función estable cuando sea necesario.
+- [x] Eliminar el `eslint-disable react-hooks/exhaustive-deps` de `AddBookModal`.
+- [x] Verificar que el lookup automático solo ocurre al abrir con ISBN inicial y no se repite en renders posteriores.
+- [x] Actualizar `EmptyState` para abrir el modal mediante `useAddBookModal().openAddBook`.
+- [x] Eliminar de `EmptyState` la instancia local adicional de `AddBookModal`.
+- [x] Verificar que `AddBookModalProvider` es la única instancia controlada para header, estado vacío y sugerencias.
+- [x] Actualizar los tests de `EmptyState` y del provider para comprobar que no existe duplicación del modal.
+- [x] Ajustar `BookMetadataPreview` para usar `isLoading` en el skeleton real durante el lookup, o eliminar la prop si el flujo no la necesita.
+- [x] Añadir el id `book-description` al texto de descripción o eliminar el `aria-controls` si deja de aplicar.
+- [x] Eliminar el truncado por caracteres y sus constantes o estilos asociados de `BookMetadataPreview`.
+- [x] Mantener únicamente `line-clamp` para el estado contraído de la descripción.
+- [x] Actualizar los tests de `BookMetadataPreview` para skeleton, accesibilidad y expansión.
+- [x] Buscar todas las referencias a `useIsbnInput` y eliminar el hook y su test si la búsqueda integrada es la única ruta real.
+- [x] Confirmar que no quedan imports ni referencias a `useIsbnInput` tras la limpieza.
+- [x] Ejecutar `cd apps/web && npm run test` y corregir fallos de la suite.
+- [x] Ejecutar `cd apps/web && npm run lint` y corregir errores o warnings.
+- [x] Ejecutar `cd apps/web && npm run build` y corregir regresiones de tipado o compilación.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.

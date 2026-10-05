@@ -352,6 +352,55 @@ describe("LibraryGrid", () => {
     expect(fetchMock).toHaveBeenCalled();
   });
 
+  it("keeps loaded books and shows an inline error when load-more fails, then retries", async () => {
+    let failPage2 = true;
+    const mock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), "http://localhost");
+      const page = Number(url.searchParams.get("page") ?? "1");
+      const pageSize = 20;
+      if (page === 2 && failPage2) {
+        return { ok: false, status: 500, json: async () => ({}) } as Response;
+      }
+      const filtered = applyFilters(DATASET, url.searchParams);
+      const start = (page - 1) * pageSize;
+      const items = filtered.slice(start, start + pageSize);
+      return {
+        ok: true,
+        json: async () => ({
+          items,
+          total: filtered.length,
+          page,
+          page_size: pageSize,
+          total_pages: Math.ceil(filtered.length / pageSize),
+        }),
+      } as Response;
+    });
+    vi.stubGlobal("fetch", mock);
+
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+    await screen.findByTestId("books-grid");
+
+    await userEvent.click(screen.getByTestId("load-more"));
+
+    // Error no destructivo: el grid conserva los 20 libros ya cargados.
+    expect(await screen.findByTestId("load-more-error")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("books-grid")).getAllByRole("button"),
+    ).toHaveLength(20);
+    expect(screen.queryByTestId("error-state")).not.toBeInTheDocument();
+
+    // Reintento específico de la paginación.
+    failPage2 = false;
+    await userEvent.click(screen.getByTestId("retry-load-more"));
+
+    await waitFor(() => {
+      expect(
+        within(screen.getByTestId("books-grid")).getAllByRole("button"),
+      ).toHaveLength(25);
+    });
+    expect(screen.queryByTestId("load-more-error")).not.toBeInTheDocument();
+  });
+
   // ---------------------------------------------------------------------
   // Sugerencias (feature 023): selecciones del dashboard
   // ---------------------------------------------------------------------

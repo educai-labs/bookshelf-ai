@@ -9,28 +9,28 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import type { BookLookupResponse } from "@/types/book";
 
-const DESCRIPTION_MAX_LINES = 3;
-const DESCRIPTION_LINE_HEIGHT = 1.5; // rem
+/**
+ * Umbral (solo heurístico) para mostrar el toggle "Ver más"/"Ver menos". NO se
+ * corta el texto: la descripción siempre se renderiza completa y la presentación
+ * contraída se controla exclusivamente con `line-clamp-3`.
+ */
+const DESCRIPTION_EXPAND_THRESHOLD = 200;
 
 interface BookMetadataPreviewProps {
   data: BookLookupResponse | null;
-  isLoading?: boolean;
 }
 
 /**
  * Preview de metadatos de un libro tras lookup por ISBN.
  * Muestra portada, título, autores, páginas, editorial, fecha, descripción.
- * Descripción truncada a 3 líneas con botón "Ver más" expandible.
- * Skeleton loading mientras `isLoading=true`.
+ * Descripción truncada a 3 líneas (solo `line-clamp`) con botón "Ver más".
+ * Skeleton mientras no hay datos (`data === null`).
  */
-export function BookMetadataPreview({
-  data,
-  isLoading = false,
-}: BookMetadataPreviewProps) {
+export function BookMetadataPreview({ data }: BookMetadataPreviewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { t } = useTranslation();
 
-  if (isLoading || !data) {
+  if (!data) {
     return (
       <div
         className="space-y-4"
@@ -72,12 +72,9 @@ export function BookMetadataPreview({
     ? `${t("book.published")}: ${published_date}`
     : null;
 
-  // Truncado de descripción a 3 líneas
-  const showTruncate = description && description.length > 200;
-  const displayDescription =
-    isExpanded || !showTruncate
-      ? description
-      : `${description.slice(0, 200)}...`;
+  // Solo decide si mostrar el toggle (nunca corta el texto).
+  const showToggle =
+    description !== null && description.length > DESCRIPTION_EXPAND_THRESHOLD;
 
   return (
     <div className="space-y-4">
@@ -122,21 +119,15 @@ export function BookMetadataPreview({
       {description && (
         <div className="space-y-2">
           <p
+            id="book-description"
             className={cn(
               "text-sm leading-relaxed",
-              !isExpanded && showTruncate && "line-clamp-3",
+              !isExpanded && showToggle && "line-clamp-3",
             )}
-            style={
-              !isExpanded && showTruncate
-                ? {
-                    maxHeight: `${DESCRIPTION_MAX_LINES * DESCRIPTION_LINE_HEIGHT}rem`,
-                  }
-                : undefined
-            }
           >
-            {displayDescription}
+            {description}
           </p>
-          {showTruncate && (
+          {showToggle && (
             <Button
               type="button"
               variant="ghost"

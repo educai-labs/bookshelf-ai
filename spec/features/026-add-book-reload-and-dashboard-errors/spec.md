@@ -1,6 +1,6 @@
 # 026 · Add Book Reload & Dashboard Errors
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

@@ -1,5 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
@@ -30,6 +37,7 @@ const mockLookup = vi.mocked(lookupBook);
 const mockGetSuggestions = vi.mocked(getBookSuggestions);
 
 let capturedOnClose: (() => void) | null = null;
+let capturedOnError: ((error: unknown) => void) | null = null;
 
 const mockAddBook = {
   mutate: vi.fn(),
@@ -80,9 +88,11 @@ describe("AddBookModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     capturedOnClose = null;
+    capturedOnError = null;
 
     vi.mocked(useAddBook).mockImplementation((options) => {
       capturedOnClose = options?.onClose ?? null;
+      capturedOnError = options?.onError ?? null;
       return mockAddBook;
     });
     mockLookup.mockReset();
@@ -281,5 +291,104 @@ describe("AddBookModal", () => {
       );
     });
     expect(await screen.findByText("Test Book")).toBeInTheDocument();
+  });
+
+  it("lookup automático con ISBN inicial no se repite en re-renders", async () => {
+    mockLookup.mockResolvedValue(mockLookupData);
+
+    function Host() {
+      const [, force] = useState(0);
+      return (
+        <>
+          <AddBookModal
+            open={true}
+            onOpenChange={vi.fn()}
+            initialIsbn="9780123456789"
+          />
+          <button
+            type="button"
+            data-testid="force-rerender"
+            onClick={() => force((n) => n + 1)}
+          >
+            force
+          </button>
+        </>
+      );
+    }
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Host />
+        <Toaster />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(mockLookup).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Test Book")).toBeInTheDocument();
+
+    // Re-render (mismo ISBN) → el guard evita un segundo lookup.
+    fireEvent.click(screen.getByTestId("force-rerender"));
+
+    expect(mockLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it("fallo del guardado vuelve a preview conservando los metadatos", async () => {
+    const user = userEvent.setup();
+    mockLookup.mockResolvedValue(mockLookupData);
+
+    renderModal();
+    await user.click(screen.getByTestId("trigger-button"));
+
+    const input = screen.getByRole("combobox");
+    await user.type(input, "9780123456789");
+    await user.click(screen.getByRole("button", { name: /buscar/i }));
+
+    await screen.findByText("Test Book");
+
+    // Guarda → entra en stage "saving".
+    await user.click(screen.getByRole("button", { name: /guardar libro/i }));
+    expect(mockAddBook.mutate).toHaveBeenCalledWith("9780123456789");
+    expect(
+      screen.getByText("Guardando libro en tu biblioteca..."),
+    ).toBeInTheDocument();
+
+    // El hook reporta error → vuelve a preview sin repetir lookup.
+    act(() => {
+      capturedOnError?.(new Error("server error"));
+    });
+
+    expect(screen.getByText("Test Book")).toBeInTheDocument();
+    expect(screen.getByText("Author One")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /guardar libro/i }),
+    ).toBeInTheDocument();
+    expect(mockLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it("éxito del guardado cierra el dialog vía onOpenChange(false)", async () => {
+    const user = userEvent.setup();
+    mockLookup.mockResolvedValue(mockLookupData);
+    const onOpenChange = vi.fn();
+
+    renderModal({ open: true, onOpenChange, initialIsbn: "9780123456789" });
+
+    await screen.findByText("Test Book");
+
+    await user.click(screen.getByRole("button", { name: /guardar libro/i }));
+    expect(mockAddBook.mutate).toHaveBeenCalledWith("9780123456789");
+
+    // El hook reporta éxito → onClose cierra el dialog.
+    act(() => {
+      capturedOnClose?.();
+    });
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
