@@ -110,6 +110,16 @@ export interface PaginatedNotes {
   page_size: number;
 }
 
+/**
+ * Forma de caché de `useInfiniteQuery` para la lista de notas de un libro
+ * (query key `["bookNotes", bookId]`). Cada página es una `PaginatedNotes`;
+ * `pageParams` guarda los parámetros de página ya cargados (1, 2, …).
+ */
+export interface BookNotesInfiniteData {
+  pages: PaginatedNotes[];
+  pageParams: number[];
+}
+
 // ============================================================
 // Tipos para Search Suggestions / Typeahead (feature 023)
 // Espejo de los modelos Pydantic: apps/api/app/models/suggestions.py

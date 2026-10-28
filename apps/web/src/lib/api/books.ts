@@ -44,6 +44,17 @@ async function authHeaders(
 }
 
 /**
+ * Resuelve la base de la URL de la API. En el servidor los rewrites de
+ * `next.config.mjs` no aplican al fetch saliente, así que se usa la URL
+ * absoluta configurada; en el cliente las rutas relativas pasan por el proxy.
+ */
+function apiBaseUrl(): string {
+  return typeof window === "undefined"
+    ? process.env.API_URL || "http://localhost:8000"
+    : "";
+}
+
+/**
  * `GET /api/v1/books/lookup?isbn=...`
  * Busca metadatos de un libro por ISBN-13 (Open Library / Google Books).
  */
@@ -111,10 +122,20 @@ export type { Note } from "@/types/book";
 /**
  * `GET /api/v1/books/{id}`
  * Obtiene un libro por ID (con notes_count).
+ *
+ * Acepta una sesión opcional para invocarse desde Server Components (donde el
+ * cliente Supabase browser no está disponible); en cliente resuelve la sesión
+ * automáticamente.
  */
-export async function getBook(id: string): Promise<Book> {
-  const headers = await authHeaders();
-  const res = await fetch(`/api/v1/books/${id}`, { headers });
+export async function getBook(
+  id: string,
+  session?: { access_token: string } | null,
+): Promise<Book> {
+  const headers = await authHeaders(session);
+  const res = await fetch(`${apiBaseUrl()}/api/v1/books/${id}`, {
+    headers,
+    cache: "no-store",
+  });
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
@@ -161,22 +182,30 @@ export async function updateBook(
 /**
  * `GET /api/v1/books/{id}/notes`
  * Lista las notas de un libro (paginado, orden created_at DESC).
+ *
+ * Acepta `session`, `page` y `pageSize` opcionales. `session` permite la
+ * invocación desde Server Components; en cliente se resuelve automáticamente.
  */
 export async function getBookNotes(
   bookId: string,
-  page = 1,
-  pageSize = 20,
-  includeChunks = false,
+  options: {
+    page?: number;
+    pageSize?: number;
+    includeChunks?: boolean;
+    session?: { access_token: string } | null;
+  } = {},
 ): Promise<PaginatedNotes> {
-  const headers = await authHeaders();
+  const { page = 1, pageSize = 20, includeChunks = false, session } = options;
+  const headers = await authHeaders(session);
   const params = new URLSearchParams({
     page: String(page),
     page_size: String(pageSize),
     include_chunks: String(includeChunks),
   });
-  const res = await fetch(`/api/v1/books/${bookId}/notes?${params}`, {
-    headers,
-  });
+  const res = await fetch(
+    `${apiBaseUrl()}/api/v1/books/${bookId}/notes?${params}`,
+    { headers, cache: "no-store" },
+  );
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));

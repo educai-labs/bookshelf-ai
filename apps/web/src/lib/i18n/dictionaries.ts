@@ -199,6 +199,7 @@ export const en = {
     deleteConfirm: "Delete this note?",
     deleted: "Note deleted",
     deleteError: "Error deleting note",
+    loadMore: "Load more notes",
   },
   chat: {
     contextLabel: "Context:",
@@ -540,6 +541,7 @@ export const es: Dictionary = {
     deleteConfirm: "¿Eliminar esta nota?",
     deleted: "Nota eliminada",
     deleteError: "Error al eliminar la nota",
+    loadMore: "Cargar más notas",
   },
   chat: {
     contextLabel: "Contexto:",

@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BookDetailClient } from "@/app/(dashboard)/book/[id]/BookDetailClient";
+import type { PaginatedNotes } from "@/types/book";
 
 // Mock the API functions
 vi.mock("@/lib/api/books", () => ({
@@ -42,7 +43,15 @@ const mockNotes = [
   },
 ];
 
-function renderClient(book = mockBook, notes = mockNotes) {
+function renderClient(
+  book = mockBook,
+  initialNotes: PaginatedNotes = {
+    items: mockNotes,
+    total: mockNotes.length,
+    page: 1,
+    page_size: 50,
+  },
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -52,7 +61,7 @@ function renderClient(book = mockBook, notes = mockNotes) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <BookDetailClient book={book} notes={notes} />
+      <BookDetailClient book={book} initialNotes={initialNotes} />
     </QueryClientProvider>,
   );
 }
@@ -65,7 +74,7 @@ describe("BookDetailPage (via BookDetailClient)", () => {
     vi.mocked(getBook).mockResolvedValue(mockBook);
     vi.mocked(getBookNotes).mockResolvedValue({
       items: mockNotes,
-      total: 1,
+      total: mockNotes.length,
       page: 1,
       page_size: 50,
     });
@@ -112,8 +121,8 @@ describe("BookDetailPage (via BookDetailClient)", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders NotesList with note count", () => {
-    renderClient(mockBook, mockNotes);
+  it("renders NotesList with note count from paginated total", () => {
+    renderClient();
 
     expect(screen.getByText("Notas guardadas (1)")).toBeInTheDocument();
     expect(screen.getByText("Test note")).toBeInTheDocument();
@@ -126,7 +135,13 @@ describe("BookDetailPage (via BookDetailClient)", () => {
   });
 
   it("shows empty state when no notes", () => {
-    renderClient(mockBook, []);
+    vi.mocked(getBookNotes).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 50,
+    });
+    renderClient(mockBook, { items: [], total: 0, page: 1, page_size: 50 });
 
     expect(
       screen.getByText("No hay notas aún. ¡Escribe la primera arriba!"),

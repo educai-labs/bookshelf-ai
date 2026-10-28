@@ -52,7 +52,6 @@ export function BookHeader({ book }: BookHeaderProps) {
         toast.success(t("book.deleted"));
       }
       queryClient.invalidateQueries({ queryKey: ["books"] });
-      queryClient.removeQueries({ queryKey: ["book", book.id] });
       router.push("/dashboard");
     },
     onError: (error: Error) => {

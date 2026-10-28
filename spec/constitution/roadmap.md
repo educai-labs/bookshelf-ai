@@ -29,15 +29,15 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 23. **031 · Fix API Startup — get_supabase_client** — Fix bloqueante de arranque: helper nullable `get_supabase_client() -> Client | None` en `app/core/database.py` (devuelve el singleton sin lanzar); `vectorization.py` (016) y sus tests consumen el nombre real; degradación elegante de 016 intacta. Validación: `uvicorn` arranca sin ImportError, `pytest -v` 100%, `ruff`+`black` limpios.
 24. **020 · Production Deployment** — Despliegue en producción con Vercel Hobby (frontend, URL por defecto `https://bookshelf-ai-azure.vercel.app`) + Google Cloud Run en `europe-west1` (backend Docker, scale-to-zero, `--no-cpu-throttling`/CPU always allocated, SA por defecto de Compute) + Supabase managed. CI/CD con GitHub Actions (`ci.yml` + `deploy.yml`, OIDC/Workload Identity Federation sin secretos de larga duración, gate `verify:schema`), `DEPLOY.md` con rollback y límites de free tiers, `docker-compose.yml` para dev local y alerta de presupuesto 0 USD. La verificación del consumo real al cierre del primer mes queda diferida a una feature de seguimiento.
 25. **026 · Add Book Reload & Dashboard Errors** — Recarga real de la biblioteca tras el alta por ISBN (invalidación que llega al grid), modal que se recupera de errores y se cierra en éxito (toast i18n `addBook.saveSuccess`), dashboard que distingue ErrorState de EmptyState y error de "Cargar más" no destructivo; limpieza del flujo de alta (mapa de errores único, a11y, código muerto).
+26. **027 · Book Detail & Notes Polish** — Fixes Z3-01…Z3-10/12/13: previsualización de notas que renderiza Markdown de verdad, fuente de datos de notas unificada y paginada (nota 51+ visible), ficha robusta ante fallos de red, tipos compartidos y limpieza de props/invalidaciones muertas + teclado en estrellas.
 
 ## Siguiente 🔜
 
 _Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez._
 
-23. **027 · Book Detail & Notes Polish** — Fixes Z3-01…Z3-10/12/13: previsualización de notas que renderiza Markdown de verdad, fuente de datos de notas unificada y paginada (nota 51+ visible), ficha robusta ante fallos de red, tipos compartidos y limpieza de props/invalidaciones muertas + teclado en estrellas.
-24. **028 · Navigation & Layout Robustness** — Fixes Z5-01…Z5-09 + Z1-03/04: item "Libros" sin 404, `error.tsx`/`not-found.tsx`/`global-error.tsx`, sidebar drawer en móvil con `aria-current`, `redirectTo` respetado tras login (validado, sin open redirects), 401→login con status preservado, paridad título+autor en el seed SSR y ConfirmDialog desacoplado a `components/ui`.
-25. **029 · Chat AI Perf & A11y** — Fixes Z4-01…Z4-09: historial sin serializar en cada token (debounce/fin de stream), Markdown memoizado por mensaje, AbortController + botón "Detener", `aria-live`/`role="status"` y keys estables, `rel="noopener noreferrer"` en el sanitize y Alert de error con título y reintento.
-26. **030 · Visual Consistency Polish** — Fixes Z1-05…Z1-09 + Z3-11: constante única de page size, filtros del dashboard sincronizados con la URL (compartir/bookmark/atrás), fallback de autores unificado, mapa único status→badge, BookCard con `<Link>` (prefetch) y un solo primitivo de estrellas.
+23. **028 · Navigation & Layout Robustness** — Fixes Z5-01…Z5-09 + Z1-03/04: item "Libros" sin 404, `error.tsx`/`not-found.tsx`/`global-error.tsx`, sidebar drawer en móvil con `aria-current`, `redirectTo` respetado tras login (validado, sin open redirects), 401→login con status preservado, paridad título+autor en el seed SSR y ConfirmDialog desacoplado a `components/ui`.
+24. **029 · Chat AI Perf & A11y** — Fixes Z4-01…Z4-09: historial sin serializar en cada token (debounce/fin de stream), Markdown memoizado por mensaje, AbortController + botón "Detener", `aria-live`/`role="status"` y keys estables, `rel="noopener noreferrer"` en el sanitize y Alert de error con título y reintento.
+25. **030 · Visual Consistency Polish** — Fixes Z1-05…Z1-09 + Z3-11: constante única de page size, filtros del dashboard sincronizados con la URL (compartir/bookmark/atrás), fallback de autores unificado, mapa único status→badge, BookCard con `<Link>` (prefetch) y un solo primitivo de estrellas.
 
 ## Backlog / ideas 💡
 
@@ -45,5 +45,6 @@ _Sin comprometer ni ordenar del todo. Ideas que respetan la constitución._
 
 - **018 · AI Recommendations** — GET `/api/v1/ai/recommendations` → prompt con historial (títulos, ratings, temas de notas) → 5 sugerencias con justificación. Modelo estructurado.
 - **019 · MCP Server** — `FastMCP` server Python. Tools: `search_books`, `get_book_notes`, `chat_with_library`, `create_book`, `create_note`. STDIO transport. Auth via env vars.
+- **032 · Book Cover Quality** — Portadas nítidas en toda la app: lookup prioriza `cover.large` (OL `/api/books`), `-L.jpg` en URLs construidas desde `cover_i` (fallbacks search.json de 023/025), Google Books `thumbnail` → `zoom=3`+`https`; backfill fail-soft re-lookup por ISBN13 refresca `cover_url` de libros ya guardados (nunca degrada/borra; rate limit 100 req/min + caché 1h).
 
 > Cada feature nueva se crea como `features/NNN-nombre-feature/` con `spec.md`, `plan.md` y `tasks.md` antes de tocar código.

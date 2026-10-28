@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Calendar, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Book, BookStatus } from "@/types/book";
@@ -33,7 +33,6 @@ interface ReadingControlsProps {
 
 export function ReadingControls({ book }: ReadingControlsProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { t, language } = useTranslation();
   const { settings } = useSettings();
   const [localStatus, setLocalStatus] = useState<BookStatus>(book.status);
@@ -47,6 +46,16 @@ export function ReadingControls({ book }: ReadingControlsProps) {
   const [startedAtOpen, setStartedAtOpen] = useState(false);
   const [finishedAtOpen, setFinishedAtOpen] = useState(false);
 
+  // Re-sincroniza el estado local cuando cambia el prop `book` (p. ej. tras un
+  // `router.refresh()` del Server Component). No interfiere con el rollback de
+  // mutaciones: un fallo de mutación revierte explícitamente desde `book`.
+  useEffect(() => {
+    setLocalStatus(book.status);
+    setLocalRating(book.rating);
+    setLocalStartedAt(book.started_at);
+    setLocalFinishedAt(book.finished_at);
+  }, [book]);
+
   const STATUS_OPTIONS: { value: BookStatus; label: string }[] = [
     { value: "want_to_read", label: t("book.status.wantToRead") },
     { value: "reading", label: t("book.status.reading") },
@@ -56,7 +65,6 @@ export function ReadingControls({ book }: ReadingControlsProps) {
   const mutation = useMutation({
     mutationFn: (data: Partial<Book>) => updateBook(book.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["book", book.id] });
       toast.success(t("reading.changesSaved"));
       router.refresh();
     },
