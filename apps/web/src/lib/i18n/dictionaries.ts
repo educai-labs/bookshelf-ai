@@ -90,6 +90,7 @@ export const en = {
     searching: "Searching...",
     loadingSession: "Loading session...",
     saveBook: "Save book",
+    saveSuccess: "Book added to your library.",
     saving: "Saving...",
     savingBook: "Saving book to your library...",
     errorInvalid: "Invalid ISBN. Check the format and try again.",
@@ -130,6 +131,7 @@ export const en = {
       many: "books",
     },
     loadMore: "Load more",
+    loadMoreError: "Couldn't load more books. Try again.",
     skeletonAria: "Loading books",
   },
   book: {
@@ -197,6 +199,7 @@ export const en = {
     deleteConfirm: "Delete this note?",
     deleted: "Note deleted",
     deleteError: "Error deleting note",
+    loadMore: "Load more notes",
   },
   chat: {
     contextLabel: "Context:",
@@ -428,6 +431,7 @@ export const es: Dictionary = {
     searching: "Buscando...",
     loadingSession: "Cargando sesión...",
     saveBook: "Guardar libro",
+    saveSuccess: "Libro añadido a tu biblioteca.",
     saving: "Guardando...",
     savingBook: "Guardando libro en tu biblioteca...",
     errorInvalid: "ISBN inválido. Verifica el formato e inténtalo de nuevo.",
@@ -469,6 +473,7 @@ export const es: Dictionary = {
       many: "libros",
     },
     loadMore: "Cargar más",
+    loadMoreError: "No se pudieron cargar más libros. Inténtalo de nuevo.",
     skeletonAria: "Cargando libros",
   },
   book: {
@@ -536,6 +541,7 @@ export const es: Dictionary = {
     deleteConfirm: "¿Eliminar esta nota?",
     deleted: "Nota eliminada",
     deleteError: "Error al eliminar la nota",
+    loadMore: "Cargar más notas",
   },
   chat: {
     contextLabel: "Contexto:",

@@ -10,9 +10,13 @@ vi.mock("@/lib/api/books", () => ({
   createNote: vi.fn(),
 }));
 
-vi.mock("@/utils/markdown", () => ({
-  insertAtCursor: vi.fn(),
-}));
+vi.mock("@/utils/markdown", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/utils/markdown")>();
+  return {
+    ...actual,
+    insertAtCursor: vi.fn(),
+  };
+});
 
 // Preferencias controlables por test (feature 022).
 const notifState = vi.hoisted(() => ({ errors: true }));
@@ -53,21 +57,25 @@ vi.mock("@/contexts/SettingsContext", () => ({
 
 import { createNote } from "@/lib/api/books";
 import { insertAtCursor } from "@/utils/markdown";
+import type { BookNotesInfiniteData } from "@/types/book";
 
-function renderEditor() {
-  const queryClient = new QueryClient({
+function renderEditor(
+  queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
-  });
-
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <NoteEditor bookId="book-1" />
-      <Toaster />
-    </QueryClientProvider>,
-  );
+  }),
+) {
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <NoteEditor bookId="book-1" />
+        <Toaster />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe("NoteEditor", () => {
@@ -331,5 +339,73 @@ describe("NoteEditor", () => {
       },
       { timeout: 1000 },
     );
+  });
+
+  it("renders Markdown en la previsualización (negrita → <strong>)", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    const textarea = screen.getByPlaceholderText(
+      /escribe tu nota en markdown/i,
+    );
+    await user.type(textarea, "**negrita**");
+
+    await user.click(screen.getByRole("tab", { name: /previsualización/i }));
+
+    await waitFor(
+      () => {
+        const previewPanel = screen.getByRole("tabpanel", {
+          name: /previsualización/i,
+        });
+        const strong = previewPanel.querySelector("strong");
+        expect(strong).not.toBeNull();
+        expect(strong).toHaveTextContent("negrita");
+      },
+      { timeout: 1000 },
+    );
+  });
+
+  it("genera content_html optimista renderizando Markdown y sanitizando", async () => {
+    let resolveMutation: (value: unknown) => void;
+    const mutationPromise = new Promise<unknown>((resolve) => {
+      resolveMutation = resolve;
+    });
+    vi.mocked(createNote).mockReturnValue(mutationPromise as Promise<never>);
+
+    const user = userEvent.setup();
+    const { queryClient } = renderEditor();
+
+    const textarea = screen.getByPlaceholderText(
+      /escribe tu nota en markdown/i,
+    );
+    await user.type(textarea, "**negrita** <script>alert(1)</script>");
+
+    await user.click(screen.getByRole("button", { name: /guardar nota/i }));
+
+    // Mientras la mutación está pendiente, la query viva contiene la nota temporal.
+    await waitFor(() => {
+      const data = queryClient.getQueryData<BookNotesInfiniteData>([
+        "bookNotes",
+        "book-1",
+      ]);
+      expect(data?.pages[0].items[0]).toBeDefined();
+    });
+
+    const data = queryClient.getQueryData<BookNotesInfiniteData>([
+      "bookNotes",
+      "book-1",
+    ])!;
+    const tempNote = data.pages[0].items[0];
+    expect(tempNote.content_html).toContain("<strong>negrita</strong>");
+    expect(tempNote.content_html).not.toContain("<script>");
+
+    resolveMutation!({
+      id: "note-1",
+      book_id: "book-1",
+      content: "**negrita** <script>alert(1)</script>",
+      content_html: "<p><strong>negrita</strong></p>",
+      chunk_index: 0,
+      created_at: "2024-01-01T00:00:00Z",
+    });
   });
 });

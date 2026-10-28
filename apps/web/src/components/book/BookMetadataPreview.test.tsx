@@ -9,21 +9,12 @@ const mockData = {
   publisher: "Test Publisher",
   published_date: "2024-01-15",
   description:
-    "This is a test description that is long enough to be truncated when displayed in the preview component. It should show the 'Ver más' button when not expanded and allow the user to expand it to see the full description.",
+    "This is a test description that is long enough to be truncated when displayed in the preview component. It should show the 'Ver más' button when not expanded and allow the user to expand it to see the full description without ever cutting a single character of the original text.",
 };
 
 describe("BookMetadataPreview", () => {
-  it("renderiza skeleton cuando isLoading=true", () => {
-    render(<BookMetadataPreview data={null} isLoading={true} />);
-
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Cargando vista previa del libro"),
-    ).toBeInTheDocument();
-  });
-
   it("renderiza skeleton cuando data es null", () => {
-    render(<BookMetadataPreview data={null} isLoading={false} />);
+    render(<BookMetadataPreview data={null} />);
 
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
@@ -62,43 +53,46 @@ describe("BookMetadataPreview", () => {
     );
   });
 
-  it("trunca la descripción larga y muestra botón 'Ver más'", () => {
+  it("trunca la descripción larga solo con line-clamp y muestra botón 'Ver más'", () => {
     render(<BookMetadataPreview data={mockData} />);
 
-    const descriptionText = screen.getByText(/This is a test description/);
-    expect(descriptionText).toHaveTextContent("...");
+    const toggle = screen.getByRole("button", { name: /ver más/i });
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-controls", "book-description");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-    expect(
-      screen.getByRole("button", { name: /ver más/i }),
-    ).toBeInTheDocument();
+    // El id referenciado por aria-controls existe en el DOM.
+    const description = document.getElementById("book-description");
+    expect(description).not.toBeNull();
+    expect(description).toHaveClass("line-clamp-3");
+    // El texto completo se conserva (sin corte por caracteres).
+    expect(description).toHaveTextContent(mockData.description);
   });
 
   it("expande la descripción al click en 'Ver más'", () => {
     render(<BookMetadataPreview data={mockData} />);
 
-    const expandButton = screen.getByRole("button", { name: /ver más/i });
-    fireEvent.click(expandButton);
+    fireEvent.click(screen.getByRole("button", { name: /ver más/i }));
 
     expect(
       screen.getByRole("button", { name: /ver menos/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(mockData.description)).toBeInTheDocument();
+    expect(document.getElementById("book-description")).not.toHaveClass(
+      "line-clamp-3",
+    );
   });
 
   it("colapsa la descripción al click en 'Ver menos'", () => {
     render(<BookMetadataPreview data={mockData} />);
 
-    const expandButton = screen.getByRole("button", { name: /ver más/i });
-    fireEvent.click(expandButton);
-
-    const collapseButton = screen.getByRole("button", { name: /ver menos/i });
-    fireEvent.click(collapseButton);
+    fireEvent.click(screen.getByRole("button", { name: /ver más/i }));
+    fireEvent.click(screen.getByRole("button", { name: /ver menos/i }));
 
     expect(
       screen.getByRole("button", { name: /ver más/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/This is a test description/)).toHaveTextContent(
-      "...",
+    expect(document.getElementById("book-description")).toHaveClass(
+      "line-clamp-3",
     );
   });
 

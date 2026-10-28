@@ -20,6 +20,17 @@ vi.mock("@/lib/api/books", () => ({
   },
 }));
 
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    loading: vi.fn(),
+    promise: vi.fn(),
+  },
+}));
+
+import { toast } from "sonner";
+
 const mockCreateBook = createBook as ReturnType<typeof vi.fn>;
 
 // Wrapper para proveer QueryClient
@@ -38,6 +49,8 @@ function wrapper({ children }: { children: ReactNode }) {
 describe("useAddBook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(toast.success).mockClear();
+    vi.mocked(toast.error).mockClear();
   });
 
   it("expone mutate, isPending, isError, error, isSuccess, reset", () => {
@@ -51,7 +64,7 @@ describe("useAddBook", () => {
     expect(typeof result.current.reset).toBe("function");
   });
 
-  it("happy path: llama createBook, invalida queries, muestra toast éxito, llama onClose", async () => {
+  it("happy path: llama createBook, invalida queries, muestra toast saveSuccess, llama onClose", async () => {
     const mockBook = {
       id: "123",
       user_id: "user-1",
@@ -87,14 +100,20 @@ describe("useAddBook", () => {
     );
     expect(onClose).toHaveBeenCalled();
     expect(result.current.isError).toBe(false);
+    // El toast de éxito usa la clave nueva de confirmación (no la del botón).
+    expect(toast.success).toHaveBeenCalledWith(
+      "Libro añadido a tu biblioteca.",
+    );
+    expect(toast.success).not.toHaveBeenCalledWith("Guardar libro");
   });
 
-  it("error 400: ISBN inválido → toast descriptivo", async () => {
+  it("error 400: ISBN inválido → toast descriptivo y onError", async () => {
     mockCreateBook.mockRejectedValue(
       new ApiError(400, "INVALID_ISBN", "ISBN inválido"),
     );
 
-    const { result } = renderHook(() => useAddBook(), { wrapper });
+    const onError = vi.fn();
+    const { result } = renderHook(() => useAddBook({ onError }), { wrapper });
 
     act(() => {
       result.current.mutate("invalid");
@@ -104,6 +123,10 @@ describe("useAddBook", () => {
 
     expect(result.current.error).toBeInstanceOf(ApiError);
     expect((result.current.error as ApiError).status).toBe(400);
+    expect(onError).toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith(
+      "ISBN inválido. Verifica el formato e inténtalo de nuevo.",
+    );
   });
 
   it("error 404: no encontrado en OL/GB → toast descriptivo", async () => {
@@ -120,6 +143,9 @@ describe("useAddBook", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect((result.current.error as ApiError).status).toBe(404);
+    expect(toast.error).toHaveBeenCalledWith(
+      "Libro no encontrado en Open Library ni Google Books.",
+    );
   });
 
   it("error 409: ya en biblioteca → toast descriptivo", async () => {
@@ -136,6 +162,9 @@ describe("useAddBook", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect((result.current.error as ApiError).status).toBe(409);
+    expect(toast.error).toHaveBeenCalledWith(
+      "Este libro ya está en tu biblioteca.",
+    );
   });
 
   it("error 500: server error → toast descriptivo", async () => {
@@ -152,6 +181,25 @@ describe("useAddBook", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect((result.current.error as ApiError).status).toBe(500);
+    expect(toast.error).toHaveBeenCalledWith(
+      "Error del servidor. Inténtalo más tarde.",
+    );
+  });
+
+  it("error desconocido: usa el fallback genérico", async () => {
+    mockCreateBook.mockRejectedValue(
+      new ApiError(418, "TEAPOT", "I'm a teapot"),
+    );
+
+    const { result } = renderHook(() => useAddBook(), { wrapper });
+
+    act(() => {
+      result.current.mutate("9780123456789");
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(toast.error).toHaveBeenCalledWith("Error al buscar el libro");
   });
 
   it("reset limpia el estado de error", async () => {

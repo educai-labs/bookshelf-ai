@@ -6,23 +6,23 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bold, Italic, Code, Link, Type, List, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Note, createNote } from "@/lib/api/books";
+import { BookNotesInfiniteData } from "@/types/book";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { insertAtCursor } from "@/utils/markdown";
-import { sanitizeHtml } from "@/utils/sanitize";
+import { insertAtCursor, renderMarkdownToHtml } from "@/utils/markdown";
 import { useTranslation } from "@/lib/i18n";
 import { useSettings } from "@/contexts/SettingsContext";
 
 interface NoteEditorProps {
   bookId: string;
-  onNoteCreated?: (note: Note) => void;
 }
 
 const DEBOUNCE_MS = 300;
+const NOTES_PAGE_SIZE = 50;
 
-export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
+export function NoteEditor({ bookId }: NoteEditorProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -53,7 +53,7 @@ export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = setTimeout(() => {
-      setPreviewContent(sanitizeHtml(markdown));
+      setPreviewContent(renderMarkdownToHtml(markdown));
     }, DEBOUNCE_MS);
   }, []);
 
@@ -72,36 +72,65 @@ export function NoteEditor({ bookId, onNoteCreated }: NoteEditorProps) {
       // Cancelar queries salientes
       await queryClient.cancelQueries({ queryKey: ["bookNotes", bookId] });
 
-      // Snapshot previo
-      const previousNotes = queryClient.getQueryData(["bookNotes", bookId]);
+      // Snapshot previo (forma infinita paginada)
+      const previousNotes = queryClient.getQueryData<BookNotesInfiniteData>([
+        "bookNotes",
+        bookId,
+      ]);
 
-      // Optimistic update: añadir nota temporal
+      // Optimistic update: añadir nota temporal al primer page
       const tempNote: Note = {
         id: `temp-${Date.now()}`,
         book_id: bookId,
         content: newContent,
-        content_html: sanitizeHtml(newContent),
+        content_html: renderMarkdownToHtml(newContent),
         chunk_index: 0,
         created_at: new Date().toISOString(),
       };
 
-      queryClient.setQueryData<Note[]>(["bookNotes", bookId], (old) =>
-        old ? [tempNote, ...old] : [tempNote],
+      queryClient.setQueryData<BookNotesInfiniteData>(
+        ["bookNotes", bookId],
+        (old) => {
+          if (!old || old.pages.length === 0) {
+            return {
+              pages: [
+                {
+                  items: [tempNote],
+                  total: 1,
+                  page: 1,
+                  page_size: NOTES_PAGE_SIZE,
+                },
+              ],
+              pageParams: [1],
+            };
+          }
+          const first = old.pages[0];
+          return {
+            ...old,
+            pages: [
+              {
+                ...first,
+                items: [tempNote, ...first.items],
+                total: first.total + 1,
+              },
+              ...old.pages.slice(1),
+            ],
+          };
+        },
       );
 
       return { previousNotes };
     },
-    onSuccess: (note) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookNotes", bookId] });
       setContent("");
       setPreviewContent("");
       toast.success(t("notes.saved"));
-      onNoteCreated?.(note);
       router.refresh();
     },
     onError: (error, _newContent, context) => {
       // Rollback
-      if (context?.previousNotes) {
+      if (context) {
         queryClient.setQueryData(["bookNotes", bookId], context.previousNotes);
       }
       // Notificación de errores (sección 3.5): solo si está activada.

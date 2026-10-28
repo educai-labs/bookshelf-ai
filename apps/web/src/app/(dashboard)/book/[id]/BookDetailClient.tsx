@@ -2,7 +2,7 @@
 
 import { type CSSProperties } from "react";
 
-import { Book, Note } from "@/types/book";
+import { Book, PaginatedNotes } from "@/types/book";
 import { BookHeader } from "@/components/book-detail/BookHeader";
 import { ReadingControls } from "@/components/book-detail/ReadingControls";
 import { NoteEditor } from "@/components/book-detail/NoteEditor";
@@ -17,7 +17,7 @@ import type { ReadingFont } from "@/types/settings";
 
 interface BookDetailClientProps {
   book: Book;
-  notes: Note[];
+  initialNotes: PaginatedNotes;
 }
 
 const FONT_FAMILIES: Record<ReadingFont, string> = {
@@ -26,7 +26,10 @@ const FONT_FAMILIES: Record<ReadingFont, string> = {
   sans: "Arial, sans-serif",
 };
 
-export function BookDetailClient({ book, notes }: BookDetailClientProps) {
+export function BookDetailClient({
+  book,
+  initialNotes,
+}: BookDetailClientProps) {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const reader = settings.reader;
@@ -140,13 +143,13 @@ export function BookDetailClient({ book, notes }: BookDetailClientProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-lg">
-            {t("book.notesTitle")} ({notes.length})
+            {t("book.notesTitle")} ({initialNotes.total})
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px]">
             <div style={readingStyle}>
-              <NotesList notes={notes} />
+              <NotesList bookId={book.id} initialNotes={initialNotes} />
             </div>
           </ScrollArea>
         </CardContent>

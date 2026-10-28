@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NotesList } from "../NotesList";
 import { NoteCard } from "../NoteCard";
+import type { Note } from "@/types/book";
 
 // Mock DOMPurify for the tests
 vi.mock("dompurify", () => ({
@@ -16,6 +17,7 @@ vi.mock("dompurify", () => ({
 
 vi.mock("@/lib/api/books", () => ({
   deleteNote: vi.fn().mockResolvedValue(undefined),
+  getBookNotes: vi.fn(),
 }));
 
 // Preferencias controlables por test (feature 022).
@@ -55,17 +57,17 @@ vi.mock("@/contexts/SettingsContext", () => ({
   }),
 }));
 
-import { deleteNote } from "@/lib/api/books";
+import { deleteNote, getBookNotes } from "@/lib/api/books";
 
 const mockedDeleteNote = vi.mocked(deleteNote);
-
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-});
+const mockedGetBookNotes = vi.mocked(getBookNotes);
 
 function renderWithClient(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    <QueryClientProvider client={client}>{ui}</QueryClientProvider>,
   );
 }
 
@@ -89,8 +91,23 @@ const mockNotes = [
 ];
 
 describe("NotesList", () => {
+  beforeEach(() => {
+    mockedGetBookNotes.mockReset();
+    mockedGetBookNotes.mockResolvedValue({
+      items: mockNotes,
+      total: mockNotes.length,
+      page: 1,
+      page_size: 50,
+    });
+  });
+
   it("renders empty state when no notes", () => {
-    renderWithClient(<NotesList notes={[]} />);
+    renderWithClient(
+      <NotesList
+        bookId="book-1"
+        initialNotes={{ items: [], total: 0, page: 1, page_size: 50 }}
+      />,
+    );
 
     expect(
       screen.getByText("No hay notas aún. ¡Escribe la primera arriba!"),
@@ -98,20 +115,85 @@ describe("NotesList", () => {
   });
 
   it("renders NoteCard for each note", () => {
-    renderWithClient(<NotesList notes={mockNotes} />);
+    renderWithClient(
+      <NotesList
+        bookId="book-1"
+        initialNotes={{
+          items: mockNotes,
+          total: mockNotes.length,
+          page: 1,
+          page_size: 50,
+        }}
+      />,
+    );
 
     expect(screen.getByText("First note content")).toBeInTheDocument();
     expect(screen.getByText("markdown")).toBeInTheDocument();
   });
 
   it("renders notes in order (created_at DESC)", () => {
-    renderWithClient(<NotesList notes={mockNotes} />);
+    renderWithClient(
+      <NotesList
+        bookId="book-1"
+        initialNotes={{
+          items: mockNotes,
+          total: mockNotes.length,
+          page: 1,
+          page_size: 50,
+        }}
+      />,
+    );
 
     const notes = screen.getAllByTestId("note-card");
     expect(notes).toHaveLength(2);
-    // First note should appear before second note in the DOM
     expect(notes[0]).toBeInTheDocument();
     expect(notes[1]).toBeInTheDocument();
+  });
+
+  it("carga más páginas hasta mostrar las 60 notas", async () => {
+    const page1: Note[] = Array.from({ length: 50 }, (_, i) => ({
+      id: `note-${i + 1}`,
+      book_id: "book-1",
+      content: `Note ${i + 1}`,
+      content_html: `<p>Note ${i + 1}</p>`,
+      chunk_index: 0,
+      created_at: "2024-01-15T10:00:00Z",
+    }));
+    const page2: Note[] = Array.from({ length: 10 }, (_, i) => ({
+      id: `note-${i + 51}`,
+      book_id: "book-1",
+      content: `Note ${i + 51}`,
+      content_html: `<p>Note ${i + 51}</p>`,
+      chunk_index: 0,
+      created_at: "2024-01-14T10:00:00Z",
+    }));
+
+    mockedGetBookNotes.mockImplementation(async (_bookId, { page } = {}) =>
+      (page ?? 1) === 1
+        ? { items: page1, total: 60, page: 1, page_size: 50 }
+        : { items: page2, total: 60, page: 2, page_size: 50 },
+    );
+
+    const user = userEvent.setup();
+    renderWithClient(
+      <NotesList
+        bookId="book-1"
+        initialNotes={{ items: page1, total: 60, page: 1, page_size: 50 }}
+      />,
+    );
+
+    // Primera página: 50 notas.
+    expect(screen.getAllByTestId("note-card")).toHaveLength(50);
+
+    // Cargar más → 60 notas.
+    const loadMore = screen.getByRole("button", { name: /cargar más notas/i });
+    await user.click(loadMore);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("note-card")).toHaveLength(60);
+    });
+    expect(screen.getByText("Note 60")).toBeInTheDocument();
+    expect(screen.getByText("Note 51")).toBeInTheDocument();
   });
 });
 

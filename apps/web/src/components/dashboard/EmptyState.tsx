@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { AddBookModal } from "@/components/books/AddBookModal";
+import { useAddBookModal } from "@/components/books/AddBookModalProvider";
 import { useTranslation } from "@/lib/i18n";
 
 /** Ilustración SVG inline del estado vacío. */
@@ -45,10 +45,12 @@ function LibraryEmptyIllustration() {
 
 /**
  * Estado vacío del Library Grid (feature 013): ilustración + mensaje
- * "Tu biblioteca está vacía" + botón que abre el modal de alta (feature 014).
+ * "Tu biblioteca está vacía" + botón que abre el modal de alta (feature 014)
+ * a través del provider controlado (única instancia del modal, feature 026).
  */
 export function EmptyState() {
   const { t } = useTranslation();
+  const { openAddBook } = useAddBookModal();
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       <LibraryEmptyIllustration />
@@ -58,11 +60,9 @@ export function EmptyState() {
           {t("dashboard.empty.subtitle")}
         </p>
       </div>
-      <AddBookModal>
-        <Button data-testid="add-first-book">
-          {t("dashboard.empty.addFirst")}
-        </Button>
-      </AddBookModal>
+      <Button data-testid="add-first-book" onClick={() => openAddBook()}>
+        {t("dashboard.empty.addFirst")}
+      </Button>
     </div>
   );
 }

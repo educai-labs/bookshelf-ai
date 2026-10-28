@@ -117,20 +117,24 @@ const mockBook = {
   notes_count: 0,
 };
 
-function renderControls(book = mockBook) {
-  const queryClient = new QueryClient({
+function renderControls(
+  book = mockBook,
+  queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
-  });
-
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <ReadingControls book={book} />
-      <Toaster />
-    </QueryClientProvider>,
-  );
+  }),
+) {
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <ReadingControls book={book} />
+        <Toaster />
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 describe("ReadingControls", () => {
@@ -326,6 +330,52 @@ describe("ReadingControls", () => {
     });
     expect(errorSpy).not.toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+
+  it("re-syncroniza estado local al cambiar el prop book", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const bookReading = {
+      ...mockBook,
+      status: "reading" as const,
+      rating: 3,
+      started_at: "2024-01-05",
+    };
+    const { rerender } = renderControls(bookReading, queryClient);
+
+    expect(screen.getByText("Leyendo")).toBeInTheDocument();
+    const starsBefore = screen.getByRole("radiogroup", { name: /valoraci/i });
+    const checkedBefore = Array.from(
+      starsBefore.querySelectorAll("button"),
+    ).filter((b) => b.getAttribute("aria-checked") === "true");
+    expect(checkedBefore).toHaveLength(3);
+
+    const bookRead = {
+      ...mockBook,
+      status: "read" as const,
+      rating: 4,
+      started_at: "2024-01-01",
+      finished_at: "2024-02-01",
+    };
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <ReadingControls book={bookRead} />
+        <Toaster />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Leído")).toBeInTheDocument();
+    });
+    const starsAfter = screen.getByRole("radiogroup", { name: /valoraci/i });
+    const checkedAfter = Array.from(
+      starsAfter.querySelectorAll("button"),
+    ).filter((b) => b.getAttribute("aria-checked") === "true");
+    expect(checkedAfter).toHaveLength(4);
   });
 
   it("enforces minDate on finished_at (not before started_at)", async () => {

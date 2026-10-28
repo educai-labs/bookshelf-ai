@@ -1,6 +1,6 @@
 # 027 · Book Detail & Notes Polish
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

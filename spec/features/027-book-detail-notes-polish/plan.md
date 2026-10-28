@@ -1,0 +1,32 @@
+# 027 · Book Detail & Notes Polish — Plan
+
+## Enfoque
+
+Se centralizará la carga de la ficha en los clientes API tipados y se convertirá la lista de notas en una consulta React Query viva, inicializada con la primera página obtenida en el Server Component y ampliable mediante una paginación simple. Así el update optimista y la UI leen/escriben la misma caché, sin introducir dependencias ni cambios de backend. En paralelo se corregirán la conversión Markdown, el manejo de errores y los detalles de sincronización y teclado de los componentes de la ficha, manteniendo los patrones existentes de toast, `notFound`, Tailwind y Vitest/RTL.
+
+## Implementación
+
+1. Extender los tipos y clientes de `apps/web/src/types/book.ts` y `apps/web/src/lib/api/books.ts` para que la respuesta paginada de notas conserve `total`, `page` y `page_size`, y para permitir que `getBook`/`getBookNotes` reciban el token de sesión cuando se invocan desde el servidor, usando la URL de API configurada sin duplicar fetch crudo. Mantener `ApiError` como error tipado y no tocar backend ni migraciones.
+2. Reemplazar los tipos y helpers locales de `apps/web/src/app/(dashboard)/book/[id]/page.tsx` por `BookResponse`/`NotesResponse` (o sus tipos compartidos), cargar la ficha exclusivamente mediante `getBook` y `getBookNotes`, y pasar al cliente la primera respuesta paginada. Envolver la carga en manejo `try/catch`: 404, ausencia de usuario/sesión y fallos de red derivan a `notFound()` (sin `console.*` directo), evitando que una excepción de fetch deje la página sin UI controlada.
+3. Cambiar `apps/web/src/app/(dashboard)/book/[id]/BookDetailClient.tsx` y `apps/web/src/components/book-detail/NotesList.tsx` para usar una única query `['bookNotes', bookId]`, con datos iniciales de la primera página, `useInfiniteQuery`/equivalente y un control accesible de “cargar más” hasta alcanzar `total`. Mostrar las 60 notas de un mock de 60, conservar el estado vacío y usar el total para el contador de la ficha; adaptar `NoteCard`/props solo donde sea necesario.
+4. Actualizar `apps/web/src/components/book-detail/NoteEditor.tsx`: importar y usar `renderMarkdownToHtml` en la previsualización debounced y para `content_html` de la nota optimista; adaptar el update optimista a la forma paginada de la query viva, invalidar esa misma query tras guardar y eliminar la prop `onNoteCreated` y su callback si ya no tiene consumidores. Mantener sanitización antes de `dangerouslySetInnerHTML` y los toasts existentes.
+5. Limpiar invalidaciones inexistentes en `apps/web/src/components/book-detail/ReadingControls.tsx` y `BookHeader.tsx`, conservando `router.refresh()` como mecanismo de refresco del Server Component. Añadir un `useEffect` en `ReadingControls` que resincronice status, rating y fechas locales cuando cambie `book`, sin alterar el rollback de mutaciones.
+6. Corregir `apps/web/src/components/book-detail/InteractiveRatingStars.tsx` con referencias a los cinco botones y navegación de foco explícita para ArrowRight/ArrowLeft (incluido comportamiento en los extremos y `preventDefault` solo cuando se mueve el foco), preservando roles ARIA y activación con Enter/Espacio.
+7. Actualizar o añadir pruebas junto a los módulos afectados: `NoteEditor.test.tsx` para Markdown y HTML optimista sanitizado; pruebas de `NotesList`/`BookDetailClient` para query viva, paginación de 60 notas y carga más; `page.test.tsx` para mocks efectivos de `getBook`/`getBookNotes` y rechazo de fetch; `ReadingControls.test.tsx` para cambio de `book`; y una prueba de teclado de `InteractiveRatingStars`. Ejecutar desde `apps/web` `npm run test`, `npm run lint` y `npm run build`, corrigiendo también los contratos de los tests existentes.
+
+## Decisiones
+
+- **Query viva con paginación infinita e inicialización server-side** — `['bookNotes', bookId]` será la única fuente de la lista y permite que el update optimista tenga efecto real; se descarta conservar exclusivamente props estáticas porque deja una caché fantasma y no resuelve notas posteriores a la primera página.
+- **Cliente API compartido con sesión opcional** — `getBook`/`getBookNotes` se reutilizan en servidor y cliente, ajustando solo autenticación/URL para el contexto server; se descarta mantener `fetchBook`/`fetchNotes` duplicados porque los mocks y tipos dejan de representar el comportamiento real.
+- **Paginación explícita “cargar más”** — es suficiente para el criterio de notas mayores de 50, es predecible y accesible; se descarta virtualización o infinite scroll avanzado por estar fuera de alcance.
+- **`notFound()` para fallos de carga de la ficha** — proporciona una salida controlada sin crear las páginas globales reservadas a la feature 028; se descarta `console.error` y devolver silenciosamente arrays vacíos porque oculta fallos de red.
+- **Eliminar `onNoteCreated` y las invalidaciones de `['book', id]` sin consumidores** — la query de notas y `router.refresh()` cubren el flujo actual; se descarta conservar APIs/invalidaciones muertas solo por compatibilidad interna.
+
+## Riesgos
+
+- **Incompatibilidad entre datos iniciales de servidor y la forma de `useInfiniteQuery`** — modelar una respuesta paginada única como primera página y probar carga, rollback e invalidación con `QueryClient` real antes de marcar la tarea completa.
+- **El update optimista puede perderse al insertar en páginas existentes o al hacer rollback** — actualizar de forma inmutable el primer page de la caché infinita, conservar el snapshot completo y cubrir éxito/error con pruebas; invalidar al finalizar para reconciliar con API.
+- **La URL relativa del cliente API puede fallar en Server Components** — centralizar la resolución de URL y pasar explícitamente el token de sesión en la llamada server-side; probar la página con mocks de los clientes, sin volver a fetch directo.
+- **Cambios de contrato rompen tests o consumidores de `BookDetailClient`** — buscar todos los usos y actualizar fixtures para incluir metadatos paginados, manteniendo compatibilidad razonable para listas iniciales vacías.
+- **La navegación de estrellas puede quedar atrapada por `preventDefault` o generar focus loops** — usar refs por índice, limitar índices válidos y verificar con RTL que las flechas mueven el foco y que Enter/Espacio siguen cambiando el rating.
+- **Markdown no sanitizado en preview o nota temporal** — usar exclusivamente `renderMarkdownToHtml`, que combina `marked` y `sanitizeHtml`, y conservar pruebas que verifiquen formato Markdown y eliminación de scripts.

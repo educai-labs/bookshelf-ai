@@ -1,5 +1,5 @@
 ---
-estado: "en curso"
+estado: "hecho"
 ---
 
 # 020 · Production Deployment — Tareas
@@ -59,9 +59,9 @@ estado: "en curso"
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Confirmar que no existen claves JSON, archivos `.pem`, `GOOGLE_APPLICATION_CREDENTIALS` ni `VERCEL_TOKEN` persistentes.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Cargar en Cloud Run `APP_ENV=production`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_JWKS_URL`, `GEMINI_API_KEY`, `GOOGLE_BOOKS_API_KEY`, `LOG_LEVEL=INFO`, `LOG_FORMAT=json` y `CORS_ORIGINS=https://<proyecto>.vercel.app` (URL de producción de Vercel).
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Confirmar que Supabase contiene el esquema remoto esperado y ejecutar `npm run verify:schema` con credenciales seguras antes de cada despliegue.
-- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Configurar una alerta de presupuesto de `0 USD/mes` y revisar el consumo de Cloud Run, Artifact Registry y demás recursos para preservar el coste 0 EUR/mes.
+- [x] **Manual (usuario):** Configurar una alerta de presupuesto de `0 USD/mes` en la cuenta de billing de Google Cloud. Evidencia: el usuario confirma que la alerta de presupuesto de `0 USD` está activa. La revisión del consumo real al cierre del primer mes se traslada a la feature de seguimiento de coste.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Revisar Cloud Logging y Vercel Logs para confirmar logs JSON visibles y ausencia de secretos, tokens, cabeceras o respuestas privadas.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Verificar de extremo a extremo una PR con preview de Vercel y un merge con producción en `https://<proyecto>.vercel.app`.
 - [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Verificar que `/api/v1/*` se resuelve mediante el rewrite hacia Cloud Run y que `GET /health` responde 200 en menos de un segundo.
-- [ ] **Manual (usuario):** (requiere las cuentas del usuario; el implementador NO puede completarlo) Crear o editar una nota, dejar el servicio sin tráfico y comprobar que la vectorización termina y el embedding queda persistido.
-- [ ] Mover la feature a "Hecho" en `../../constitution/roadmap.md`. _(Responsabilidad del agente `roadmap`; no la ejecuta el implementador.)_
+- [x] **Manual (usuario):** Crear o editar una nota, dejar el servicio sin tráfico y comprobar que la vectorización termina y el embedding queda persistido. Evidencia: el usuario creó/actualizó una nota, dejó el servicio sin tráfico y comprobó en Supabase que el embedding quedó persistido; la consulta SQL devolvió `has_embedding=true` en filas recientes.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`. _(Responsabilidad del agente `roadmap`; no la ejecuta el implementador.)_

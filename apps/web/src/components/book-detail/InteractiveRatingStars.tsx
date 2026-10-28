@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
 
 export type RatingStarSize = "sm" | "md" | "lg";
@@ -52,6 +53,7 @@ export function InteractiveRatingStars({
   disabled = false,
 }: InteractiveRatingStarsProps) {
   const filledCount = rating !== null ? rating : 0;
+  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const handleClick = (index: number) => {
     if (disabled) return;
@@ -65,13 +67,20 @@ export function InteractiveRatingStars({
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       handleClick(index);
+      return;
     }
-    if (event.key === "ArrowRight" && index < 4) {
+    if (event.key === "ArrowRight") {
       event.preventDefault();
-      // Focus next star handled by browser tab order
+      // Limita el índice en el extremo derecho (sin focus loops).
+      const next = Math.min(index + 1, 4);
+      buttonRefs.current[next]?.focus();
+      return;
     }
-    if (event.key === "ArrowLeft" && index > 0) {
+    if (event.key === "ArrowLeft") {
       event.preventDefault();
+      // Limita el índice en el extremo izquierdo (sin focus loops).
+      const prev = Math.max(index - 1, 0);
+      buttonRefs.current[prev]?.focus();
     }
   };
 
@@ -92,6 +101,9 @@ export function InteractiveRatingStars({
           aria-setsize={5}
           tabIndex={disabled ? -1 : 0}
           disabled={disabled}
+          ref={(el) => {
+            buttonRefs.current[i] = el;
+          }}
           onClick={() => handleClick(i)}
           onKeyDown={(e) => handleKeyDown(e, i)}
           className={cn(

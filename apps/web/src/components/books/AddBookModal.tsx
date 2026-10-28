@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 
 import {
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { BookSearchCombobox } from "@/components/search/BookSearchCombobox";
 import { useAddBook } from "@/hooks/useAddBook";
 import { lookupBook } from "@/lib/api/books";
+import { addBookErrorKey } from "@/lib/api/errors";
 import { BookMetadataPreview } from "@/components/book/BookMetadataPreview";
 import { useSession } from "@/hooks/useAuth";
 import { useTranslation } from "@/lib/i18n";
@@ -73,7 +74,16 @@ export function AddBookModal({
     reset: resetAddBook,
   } = useAddBook(
     {
-      onClose: () => resetModal(),
+      onClose: () => {
+        // Éxito: resetea el estado interno y cierra el dialog (modo controlado).
+        resetModal();
+        onOpenChange?.(false);
+      },
+      onError: () => {
+        // Falla el guardado: vuelve a preview conservando metadatos para
+        // corregir/reintentar sin repetir el lookup.
+        setStage("preview");
+      },
     },
     session,
   );
@@ -90,49 +100,50 @@ export function AddBookModal({
     resetAddBook();
   }
 
-  async function runLookup(isbn: string) {
-    if (isSessionLoading) return;
-    setIsLookupPending(true);
-    setInLibraryMatch(null);
-    try {
-      const data = await lookupBook(isbn, session);
-      setLookupData(data);
-      setLookupIsbn(isbn);
-      setStage("preview");
-    } catch (error) {
-      if (error instanceof Error && "status" in error) {
-        const apiError = error as unknown as {
-          status: number;
-          code: string;
-          message: string;
-        };
-        const messages: Record<number, string> = {
-          400: t("addBook.errorInvalid"),
-          404: t("addBook.errorNotFound"),
-          409: t("addBook.errorDuplicate"),
-          500: t("addBook.errorServer"),
-        };
-        toast.error(
-          messages[apiError.status] ??
-            apiError.message ??
-            t("addBook.errorGeneric"),
-        );
-      } else {
-        toast.error(t("addBook.errorGeneric"));
+  const runLookup = useCallback(
+    async (isbn: string) => {
+      if (isSessionLoading) return;
+      setIsLookupPending(true);
+      setInLibraryMatch(null);
+      try {
+        const data = await lookupBook(isbn, session);
+        setLookupData(data);
+        setLookupIsbn(isbn);
+        setStage("preview");
+      } catch (error) {
+        if (error instanceof Error && "status" in error) {
+          const apiError = error as unknown as {
+            status: number;
+            code: string;
+            message: string;
+          };
+          toast.error(t(addBookErrorKey(apiError.status)));
+        } else {
+          toast.error(t("addBook.errorGeneric"));
+        }
+      } finally {
+        setIsLookupPending(false);
       }
-    } finally {
-      setIsLookupPending(false);
-    }
-  }
+    },
+    [isSessionLoading, session, t],
+  );
 
   // Apertura controlada con ISBN inicial → lookup directo a preview.
+  // El guard `lastAutoLookup` evita repetir el lookup en re-renders (p. ej.
+  // cuando cambia `runLookup` por el cambio de sesión) y se resetea al cerrar.
+  const lastAutoLookup = useRef<string | null>(null);
+
   useEffect(() => {
-    if (open && initialIsbn) {
+    if (!open) {
+      lastAutoLookup.current = null;
+      return;
+    }
+    if (initialIsbn && lastAutoLookup.current !== initialIsbn) {
+      lastAutoLookup.current = initialIsbn;
       setQuery(initialIsbn);
       void runLookup(initialIsbn);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialIsbn]);
+  }, [open, initialIsbn, runLookup]);
 
   function handleSelectSuggestion(item: BookSuggestion) {
     if (item.source === "library") {
