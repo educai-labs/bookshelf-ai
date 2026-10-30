@@ -12,7 +12,7 @@ import { deleteBook } from "@/lib/api/books";
 import { useTranslation } from "@/lib/i18n";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/settings/ConfirmDialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface BookHeaderProps {
   book: Book;

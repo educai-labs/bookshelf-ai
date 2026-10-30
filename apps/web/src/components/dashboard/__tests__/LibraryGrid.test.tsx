@@ -15,13 +15,16 @@ import { LibraryGrid } from "../LibraryGrid";
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
   getSession: vi.fn(),
   getBookSuggestions: vi.fn(),
   lookupBook: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mocks.push }),
+  useRouter: () => ({ push: mocks.push, replace: mocks.replace }),
+  usePathname: () => "/dashboard",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -41,10 +44,14 @@ vi.mock("@/hooks/useAuth", () => ({
   useUser: vi.fn(() => ({ id: "test-user-id" }) as any),
 }));
 
-vi.mock("@/lib/api/books", () => ({
-  getBookSuggestions: mocks.getBookSuggestions,
-  lookupBook: mocks.lookupBook,
-}));
+vi.mock("@/lib/api/books", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api/books")>();
+  return {
+    ...actual,
+    getBookSuggestions: mocks.getBookSuggestions,
+    lookupBook: mocks.lookupBook,
+  };
+});
 
 vi.mock("sonner", () => ({
   toast: {
@@ -175,6 +182,7 @@ function lastFetchUrl(mock: ReturnType<typeof vi.fn>): string {
 describe("LibraryGrid", () => {
   beforeEach(() => {
     mocks.push.mockReset();
+    mocks.replace.mockReset();
     mocks.getSession.mockReset();
     mocks.getBookSuggestions.mockReset();
     mocks.lookupBook.mockReset();
@@ -399,6 +407,43 @@ describe("LibraryGrid", () => {
       ).toHaveLength(25);
     });
     expect(screen.queryByTestId("load-more-error")).not.toBeInTheDocument();
+  });
+
+  it("redirige a /login preservando la ruta ante un 401", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return {
+          ok: false,
+          status: 401,
+          json: async () => ({ code: "UNAUTHORIZED" }),
+        } as Response;
+      }),
+    );
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalled());
+    expect(mocks.replace).toHaveBeenCalledWith(
+      "/login?redirectTo=%2Fdashboard",
+    );
+    expect(screen.queryByTestId("error-state")).not.toBeInTheDocument();
+  });
+
+  it("muestra ErrorState ante un 500 (sin redirigir a login)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return {
+          ok: false,
+          status: 500,
+          json: async () => ({ code: "INTERNAL", message: "down" }),
+        } as Response;
+      }),
+    );
+    renderGrid(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+
+    expect(await screen.findByTestId("error-state")).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   // ---------------------------------------------------------------------

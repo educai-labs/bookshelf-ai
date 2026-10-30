@@ -20,6 +20,12 @@ import { SettingsProvider } from "@/contexts/SettingsContext";
  *
  * Nota: `SessionProvider` NO vive aquí — solo envuelve el área protegida
  * `(dashboard)` para no forzar client-side en páginas públicas (SEO/performance).
+ *
+ * Decisión Z5-09 (feature 028): `Providers` se mantiene como client component
+ * porque necesita estado/hooks de cliente — `useState` para el `QueryClient`
+ * (memoizado entre renders) y los providers de tema (`next-themes`) y settings
+ * (`SettingsContext`) que dependen de `window`/`document`/`matchMedia`. No se
+ * extrae a Server Components en esta feature (ver `plan.md` §Decisiones).
  */
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = React.useState(

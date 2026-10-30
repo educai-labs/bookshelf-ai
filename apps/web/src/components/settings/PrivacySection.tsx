@@ -6,7 +6,7 @@ import { formatDateShort } from "@/lib/formatters";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { SectionCard, SettingRow } from "./SectionCard";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   useClearLocalHistory,
   useDeleteAccount,

@@ -127,6 +127,13 @@ describe("DashboardHeader", () => {
     expect(await screen.findByText("Mi cuenta")).toBeInTheDocument();
   });
 
+  it("renders the brand as a link to /dashboard", async () => {
+    renderWithSession();
+
+    const brand = await screen.findByRole("link", { name: /bookshelf/i });
+    expect(brand).toHaveAttribute("href", "/dashboard");
+  });
+
   it("shows the user email and avatar initials", async () => {
     mocks.getSession.mockResolvedValue({
       data: { session: { user: { email: "ana.moreno@example.com" } } },

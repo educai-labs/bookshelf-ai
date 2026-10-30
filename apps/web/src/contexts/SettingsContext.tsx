@@ -34,6 +34,7 @@ import {
   removeKey,
   writeJson,
 } from "@/lib/settings/storage";
+import { setLanguageCookie } from "@/lib/settings/language";
 import { supabase } from "@/lib/supabase/client";
 import type {
   ChatPreferences,
@@ -147,9 +148,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener?.("change", update);
   }, []);
 
-  // --- Sincroniza el idioma con `document.documentElement.lang` -------------
+  // --- Sincroniza el idioma con `document.documentElement.lang` + cookie ----
+  // `document.documentElement.lang` se actualiza al instante (sin recarga) y la
+  // cookie `bookshelf:language` es la fuente que el layout raíz leerá en el
+  // siguiente SSR para producir `<html lang>` consistente (feature 028).
   useEffect(() => {
     document.documentElement.lang = settings.language;
+    setLanguageCookie(settings.language);
   }, [settings.language]);
 
   // --- Persiste el idioma (local) ------------------------------------------

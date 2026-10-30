@@ -8,6 +8,12 @@ const mocks = vi.hoisted(() => ({
   signInWithOAuth: vi.fn(),
 }));
 
+const searchParamsState = vi.hoisted(() => ({ value: new URLSearchParams() }));
+
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => searchParamsState.value,
+}));
+
 vi.mock("@/lib/supabase/client", () => ({
   supabase: {
     auth: {
@@ -32,8 +38,15 @@ describe("RegisterForm", () => {
   beforeEach(() => {
     mocks.signUp.mockReset();
     mocks.signInWithOAuth.mockReset();
+    searchParamsState.value = new URLSearchParams();
     vi.clearAllMocks();
   });
+
+  function expectedOAuthRedirectTo(next: string): string {
+    const url = new URL("/auth/callback", window.location.origin);
+    url.searchParams.set("next", next);
+    return url.href;
+  }
 
   function fillAndSubmit() {
     fireEvent.change(screen.getByLabelText(/email/i), {
@@ -113,9 +126,42 @@ describe("RegisterForm", () => {
       expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
         provider: "google",
         options: {
-          redirectTo: new URL("/auth/callback", window.location.origin).href,
+          redirectTo: expectedOAuthRedirectTo("/dashboard"),
         },
       }),
+    );
+  });
+
+  it("pasa el destino seguro al callback OAuth de registro", async () => {
+    searchParamsState.value = new URLSearchParams({ redirectTo: "/settings" });
+    mocks.signInWithOAuth.mockResolvedValue({ error: null });
+
+    render(<RegisterForm />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /continuar con google/i }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "google",
+        options: { redirectTo: expectedOAuthRedirectTo("/settings") },
+      }),
+    );
+  });
+
+  it("preserva redirectTo en el enlace de confirmación a /login", async () => {
+    searchParamsState.value = new URLSearchParams({ redirectTo: "/book/abc" });
+    mocks.signUp.mockResolvedValue({ error: null });
+
+    render(<RegisterForm />);
+    fillAndSubmit();
+
+    const loginLink = await screen.findByRole("link", {
+      name: /ir a iniciar sesión/i,
+    });
+    expect(loginLink).toHaveAttribute(
+      "href",
+      "/login?redirectTo=%2Fbook%2Fabc",
     );
   });
 

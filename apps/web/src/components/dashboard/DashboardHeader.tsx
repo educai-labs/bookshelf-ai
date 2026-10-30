@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOut, Loader2, Plus } from "lucide-react";
@@ -66,7 +67,13 @@ export function DashboardHeader() {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-6">
-      <div className="flex items-center gap-2 font-semibold">Bookshelf</div>
+      <Link
+        href="/dashboard"
+        className="flex items-center gap-2 font-semibold"
+        aria-label="Bookshelf"
+      >
+        Bookshelf
+      </Link>
       <div className="flex items-center gap-2">
         <Button size="sm" className="gap-2" onClick={() => openAddBook()}>
           <Plus className="size-4" />
