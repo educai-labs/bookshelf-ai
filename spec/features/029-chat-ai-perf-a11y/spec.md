@@ -1,6 +1,6 @@
 # 029 · Chat AI Perf & A11y
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

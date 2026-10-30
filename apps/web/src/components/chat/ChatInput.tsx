@@ -1,6 +1,6 @@
 "use client";
 
-import { SendHorizontal } from "lucide-react";
+import { SendHorizontal, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,8 @@ interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
+  /** Aborta la respuesta en curso (botón "Detener" durante el streaming). */
+  onStop: () => void;
   disabled: boolean;
   mode: ChatMode;
   onModeChange: (mode: ChatMode) => void;
@@ -28,11 +30,14 @@ interface ChatInputProps {
 /**
  * Campo de entrada del chat: textarea + botón enviar + selector de contexto.
  * Evita envíos vacíos (`canSend`) y envía con Enter (Shift+Enter = salto de línea).
+ * Durante el streaming el botón de envío se sustituye por un botón accesible
+ * "Detener" que aborta la respuesta actual.
  */
 export function ChatInput({
   value,
   onChange,
   onSend,
+  onStop,
   disabled,
   mode,
   onModeChange,
@@ -83,14 +88,27 @@ export function ChatInput({
           aria-label={t("chat.messageAria")}
           className="min-h-[52px] flex-1 resize-none"
         />
-        <Button
-          onClick={onSend}
-          disabled={!canSend}
-          aria-label={t("chat.sendAria")}
-          size="icon"
-        >
-          <SendHorizontal className="size-4" />
-        </Button>
+        {disabled ? (
+          <Button
+            onClick={onStop}
+            aria-label={t("chat.stop")}
+            variant="secondary"
+            size="sm"
+            className="shrink-0"
+          >
+            <Square className="size-4" />
+            {t("chat.stop")}
+          </Button>
+        ) : (
+          <Button
+            onClick={onSend}
+            disabled={!canSend}
+            aria-label={t("chat.sendAria")}
+            size="icon"
+          >
+            <SendHorizontal className="size-4" />
+          </Button>
+        )}
       </div>
     </div>
   );

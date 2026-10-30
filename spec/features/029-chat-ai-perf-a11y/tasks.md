@@ -1,0 +1,44 @@
+---
+estado: "hecho"
+---
+
+# 029 · Chat AI Perf & A11y — Tareas
+
+- [x] Extender el contrato interno de mensajes de `ChatMessage` con un id estable y normalizar historiales antiguos sin id al hidratarlos.
+- [x] Conservar la serialización histórica `{ role, content }` al persistir mensajes en `sessionStorage`.
+- [x] Sustituir la persistencia por token del historial por un debounce de al menos 300 ms.
+- [x] Limpiar el temporizador de persistencia al desmontar `ChatPage`.
+- [x] Añadir un flush de persistencia al finalizar o detener el stream.
+- [x] Mantener desactivada la persistencia cuando el historial esté deshabilitado.
+- [x] Memorizar con `useMemo` el HTML de los mensajes de asistente dependiendo de `message.content`.
+- [x] Mantener el renderizado de mensajes de usuario como texto plano.
+- [x] Añadir una prueba con spy que confirme que un mensaje terminado no se vuelve a parsear cuando cambia otro mensaje.
+- [x] Añadir un `AbortSignal` opcional al contrato de `streamChat` y propagarlo a `fetch` sin alterar el protocolo SSE.
+- [x] Crear y conservar un `AbortController` por envío en `ChatPage`.
+- [x] Abortar el stream durante cleanup y al salir de la página, evitando actualizaciones de estado después del unmount.
+- [x] Distinguir las cancelaciones intencionadas de los errores visibles del stream.
+- [x] Conservar en el historial el texto parcial recibido al abortar una respuesta.
+- [x] Añadir el botón accesible "Detener" durante el streaming para abortar la respuesta actual.
+- [x] Guardar el último payload o mensaje de usuario necesario para reintentar el envío.
+- [x] Implementar el reintento del último mensaje con el modo, libro, idioma y preferencias vigentes.
+- [x] Evitar controles de detener y reintentar incompatibles con el estado actual del streaming.
+- [x] Usar los ids estables de los mensajes como `key` en la lista de `ChatPage`, eliminando `key={index}`.
+- [x] Añadir `aria-live="polite"` al contenedor de mensajes.
+- [x] Añadir `role="status"` al indicador de pensamiento del asistente.
+- [x] Añadir título y acción de reintento al Alert de error del chat.
+- [x] Detectar `prefers-reduced-motion` con fallback seguro para SSR/jsdom y elegir scroll instantáneo cuando esté activo.
+- [x] Mantener el auto-scroll existente cuando `prefers-reduced-motion` no esté activo.
+- [x] Añadir tests de atributos ARIA, ids estables y ambos comportamientos de scroll reducido.
+- [x] Configurar DOMPurify para añadir `rel="noopener noreferrer"` a enlaces con `target="_blank"` sin ampliar tags ni URI permitidos.
+- [x] Añadir un test de sanitización para enlaces externos con `target="_blank"` y conservar las protecciones XSS existentes.
+- [x] Añadir las claves i18n es/en para el botón Detener, el título del error, el reintento y los estados del chat.
+- [x] Actualizar los tests de `ChatPage`, `ChatMessage` y el contexto para los contratos de ids y persistencia.
+- [x] Añadir tests unitarios de `streamChat` para la propagación de `AbortSignal` y conservar la cobertura del parser SSE.
+- [x] Añadir tests de debounce, flush, abort en unmount, cancelación con texto parcial y reintento en `ChatPage`.
+- [x] Ejecutar `cd apps/web && npm run test` y corregir regresiones de la feature.
+- [x] Ejecutar `cd apps/web && npm run lint` y corregir errores o advertencias introducidos.
+- [x] Ejecutar `cd apps/web && npm run build` y corregir errores de tipos, compilación o prerenderizado.
+- [x] Confirmar que no se modifican el endpoint, el protocolo SSE, el backend, `supabase/migrations/` ni `package.json`.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.

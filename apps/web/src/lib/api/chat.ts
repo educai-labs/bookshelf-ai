@@ -84,16 +84,20 @@ export function parseSseEvent(raw: string): ChatStreamChunk | null {
  * Consume el `ReadableStream` incrementalmente con un buffer de texto, tolerante
  * a que un evento quede partido entre dos lecturas (acumula hasta `\n\n`).
  * Lanza `ApiError` si el backend responde con error HTTP (antes del stream) y
- * `Error` si la respuesta no trae cuerpo legible.
+ * `Error` si la respuesta no trae cuerpo legible. Acepta opcionalmente un
+ * `AbortSignal` que se propaga a `fetch` (sin alterar el protocolo SSE); al
+ * abortar, `fetch` rechaza con `AbortError` y se propaga al consumidor.
  */
 export async function* streamChat(
   payload: ChatRequestPayload,
+  signal?: AbortSignal,
 ): AsyncGenerator<ChatStreamChunk> {
   const headers = await authHeaders();
   const res = await fetch("/api/v1/ai/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(toWire(payload)),
+    signal,
   });
 
   if (!res.ok) {
