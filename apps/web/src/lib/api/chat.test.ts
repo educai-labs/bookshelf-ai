@@ -168,6 +168,24 @@ describe("streamChat", () => {
     });
   });
 
+  it("propaga el AbortSignal opcional a fetch (Z4-03)", async () => {
+    const controller = new AbortController();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(sseResponse(['data: {"chunk":"ok","done":true}\n\n']));
+    vi.stubGlobal("fetch", fetchMock);
+
+    for await (const _chunk of streamChat(
+      { query: "hola" },
+      controller.signal,
+    )) {
+      // consume
+    }
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.signal).toBe(controller.signal);
+  });
+
   it("lanza ApiError con el código del backend cuando falla la petición", async () => {
     vi.stubGlobal(
       "fetch",
