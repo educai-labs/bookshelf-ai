@@ -1,6 +1,6 @@
 # 028 · Navigation & Layout Robustness
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

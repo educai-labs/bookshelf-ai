@@ -30,14 +30,14 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 24. **020 · Production Deployment** — Despliegue en producción con Vercel Hobby (frontend, URL por defecto `https://bookshelf-ai-azure.vercel.app`) + Google Cloud Run en `europe-west1` (backend Docker, scale-to-zero, `--no-cpu-throttling`/CPU always allocated, SA por defecto de Compute) + Supabase managed. CI/CD con GitHub Actions (`ci.yml` + `deploy.yml`, OIDC/Workload Identity Federation sin secretos de larga duración, gate `verify:schema`), `DEPLOY.md` con rollback y límites de free tiers, `docker-compose.yml` para dev local y alerta de presupuesto 0 USD. La verificación del consumo real al cierre del primer mes queda diferida a una feature de seguimiento.
 25. **026 · Add Book Reload & Dashboard Errors** — Recarga real de la biblioteca tras el alta por ISBN (invalidación que llega al grid), modal que se recupera de errores y se cierra en éxito (toast i18n `addBook.saveSuccess`), dashboard que distingue ErrorState de EmptyState y error de "Cargar más" no destructivo; limpieza del flujo de alta (mapa de errores único, a11y, código muerto).
 26. **027 · Book Detail & Notes Polish** — Fixes Z3-01…Z3-10/12/13: previsualización de notas que renderiza Markdown de verdad, fuente de datos de notas unificada y paginada (nota 51+ visible), ficha robusta ante fallos de red, tipos compartidos y limpieza de props/invalidaciones muertas + teclado en estrellas.
+27. **028 · Navigation & Layout Robustness** — Fixes Z5-01…Z5-09 + Z1-03/04: item "Libros" sin 404, `error.tsx`/`not-found.tsx`/`global-error.tsx`, sidebar drawer en móvil con `aria-current`, `redirectTo` respetado tras login (validado, sin open redirects), 401→login con status preservado, paridad título+autor en el seed SSR y ConfirmDialog desacoplado a `components/ui`.
 
 ## Siguiente 🔜
 
 _Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez._
 
-23. **028 · Navigation & Layout Robustness** — Fixes Z5-01…Z5-09 + Z1-03/04: item "Libros" sin 404, `error.tsx`/`not-found.tsx`/`global-error.tsx`, sidebar drawer en móvil con `aria-current`, `redirectTo` respetado tras login (validado, sin open redirects), 401→login con status preservado, paridad título+autor en el seed SSR y ConfirmDialog desacoplado a `components/ui`.
-24. **029 · Chat AI Perf & A11y** — Fixes Z4-01…Z4-09: historial sin serializar en cada token (debounce/fin de stream), Markdown memoizado por mensaje, AbortController + botón "Detener", `aria-live`/`role="status"` y keys estables, `rel="noopener noreferrer"` en el sanitize y Alert de error con título y reintento.
-25. **030 · Visual Consistency Polish** — Fixes Z1-05…Z1-09 + Z3-11: constante única de page size, filtros del dashboard sincronizados con la URL (compartir/bookmark/atrás), fallback de autores unificado, mapa único status→badge, BookCard con `<Link>` (prefetch) y un solo primitivo de estrellas.
+23. **029 · Chat AI Perf & A11y** — Fixes Z4-01…Z4-09: historial sin serializar en cada token (debounce/fin de stream), Markdown memoizado por mensaje, AbortController + botón "Detener", `aria-live`/`role="status"` y keys estables, `rel="noopener noreferrer"` en el sanitize y Alert de error con título y reintento.
+24. **030 · Visual Consistency Polish** — Fixes Z1-05…Z1-09 + Z3-11: constante única de page size, filtros del dashboard sincronizados con la URL (compartir/bookmark/atrás), fallback de autores unificado, mapa único status→badge, BookCard con `<Link>` (prefetch) y un solo primitivo de estrellas.
 
 ## Backlog / ideas 💡
 
