@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { useDebounce } from "@/lib/hooks/useDebounce";
+import { ApiError } from "@/lib/api/books";
 import { supabase } from "@/lib/supabase/client";
 import type { Book, BookFilters, PaginatedBooks } from "@/types/book";
 
@@ -93,7 +94,18 @@ async function fetchBooksPage(
   });
 
   if (!res.ok) {
-    throw new Error("No se pudieron cargar los libros");
+    // Error tipado con `status`/`code` (feature 028): preserva el cuerpo HTTP
+    // relevante para que el flujo de biblioteca distinga 401 (sesión caducada)
+    // de 5xx (ErrorState), sin convertir todo a una abstracción nueva.
+    const body = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      message?: string;
+    };
+    throw new ApiError(
+      res.status,
+      body.code ?? "BOOKS_FETCH_FAILED",
+      body.message ?? "No se pudieron cargar los libros",
+    );
   }
 
   return (await res.json()) as PaginatedBooks;

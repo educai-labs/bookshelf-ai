@@ -10,7 +10,7 @@ import { deleteNote } from "@/lib/api/books";
 import { sanitizeHtml } from "@/utils/sanitize";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/settings/ConfirmDialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useTranslation } from "@/lib/i18n";
 import { useSettings } from "@/contexts/SettingsContext";
 import { formatRelativeTime } from "@/lib/formatters";

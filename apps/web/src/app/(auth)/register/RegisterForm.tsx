@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase/client";
 import { registerSchema, type RegisterValues } from "@/lib/validations";
 import { useTranslation } from "@/lib/i18n";
+import { safeRedirectTo, withRedirectTo } from "@/lib/auth/redirect";
 
 /**
  * Formulario de registro (email/password + Google OAuth).
@@ -29,9 +31,14 @@ import { useTranslation } from "@/lib/i18n";
  */
 export function RegisterForm() {
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Destino post-registro validado (feature 028): se preserva en los enlaces a
+  // login y en el callback OAuth; valores externos → `/dashboard`.
+  const safeNext = safeRedirectTo(searchParams.get("redirectTo"));
 
   const {
     register,
@@ -62,10 +69,11 @@ export function RegisterForm() {
   async function handleGoogleRegister() {
     setIsGoogleLoading(true);
     try {
-      const redirectTo = new URL("/auth/callback", window.location.origin).href;
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", safeNext);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo },
+        options: { redirectTo: callbackUrl.href },
       });
       if (error) {
         toast.error(error.message);
@@ -86,7 +94,11 @@ export function RegisterForm() {
         </CardHeader>
         <CardFooter>
           <Button asChild variant="outline" className="w-full">
-            <Link href="/login">{t("auth.register.goToLogin")}</Link>
+            <Link
+              href={withRedirectTo("/login", searchParams.get("redirectTo"))}
+            >
+              {t("auth.register.goToLogin")}
+            </Link>
           </Button>
         </CardFooter>
       </Card>
@@ -166,7 +178,7 @@ export function RegisterForm() {
         <p className="text-sm text-muted-foreground">
           {t("auth.register.hasAccount")}{" "}
           <Link
-            href="/login"
+            href={withRedirectTo("/login", searchParams.get("redirectTo"))}
             className="text-primary underline-offset-4 hover:underline"
           >
             {t("auth.register.login")}

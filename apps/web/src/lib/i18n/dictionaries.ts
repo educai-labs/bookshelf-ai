@@ -29,6 +29,11 @@ export const en = {
     dashboard: "Dashboard",
     books: "Books",
     settings: "Settings",
+    navAria: "Main navigation",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+    navTitle: "Navigation",
+    navDescription: "Main navigation menu",
   },
   auth: {
     login: {
@@ -78,6 +83,16 @@ export const en = {
     signOut: "Sign out",
     signOutSuccess: "Signed out",
     signOutError: "Error signing out",
+  },
+  error: {
+    title: "Something went wrong",
+    description: "An unexpected error occurred. Please try again.",
+    retry: "Try again",
+    reload: "Reload page",
+    notFoundTitle: "Page not found",
+    notFoundDescription:
+      "The page you are looking for doesn't exist or has been moved.",
+    backToDashboard: "Back to dashboard",
   },
   addBook: {
     title: "Add book by ISBN",
@@ -369,6 +384,11 @@ export const es: Dictionary = {
     dashboard: "Dashboard",
     books: "Libros",
     settings: "Configuración",
+    navAria: "Navegación principal",
+    openMenu: "Abrir menú",
+    closeMenu: "Cerrar menú",
+    navTitle: "Navegación",
+    navDescription: "Menú de navegación principal",
   },
   auth: {
     login: {
@@ -418,6 +438,15 @@ export const es: Dictionary = {
     signOut: "Cerrar sesión",
     signOutSuccess: "Sesión cerrada",
     signOutError: "Error al cerrar sesión",
+  },
+  error: {
+    title: "Algo salió mal",
+    description: "Ocurrió un error inesperado. Inténtalo de nuevo.",
+    retry: "Reintentar",
+    reload: "Recargar página",
+    notFoundTitle: "Página no encontrada",
+    notFoundDescription: "La página que buscas no existe o ha sido movida.",
+    backToDashboard: "Volver al dashboard",
   },
   addBook: {
     title: "Añadir libro por ISBN",

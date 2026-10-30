@@ -1,13 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAddBookModal } from "@/components/books/AddBookModalProvider";
+import { ApiError } from "@/lib/api/books";
 import { useBooks } from "@/lib/hooks/useBooks";
 import type { Book, BookFilters, BookSuggestion } from "@/types/book";
 import { useTranslation } from "@/lib/i18n";
@@ -64,6 +65,8 @@ export function LibraryGrid({
   initialFilters,
 }: LibraryGridProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { t, language } = useTranslation();
   const { openAddBook } = useAddBookModal();
   const [filters, setFilters] = useState<BookFilters>({
@@ -83,6 +86,18 @@ export function LibraryGrid({
     retry,
     retryLoadMore,
   } = useBooks(filters, { initialBooks, initialTotal });
+
+  // Sesión caducada (401) en la primera carga: redirige a login preservando la
+  // ruta + query actuales como `redirectTo` (el middleware los respeta al
+  // volver). Los errores 5xx siguen mostrando `ErrorState` con retry.
+  const isUnauthorized = error instanceof ApiError && error.status === 401;
+
+  useEffect(() => {
+    if (!isUnauthorized) return;
+    const query = searchParams.toString();
+    const current = query ? `${pathname}?${query}` : pathname;
+    router.replace(`/login?redirectTo=${encodeURIComponent(current)}`);
+  }, [isUnauthorized, pathname, searchParams, router]);
 
   function handleStatusChange(value: StatusFilterValue) {
     setFilters((prev) => ({
@@ -140,7 +155,9 @@ export function LibraryGrid({
       </header>
 
       {error ? (
-        <ErrorState message={error.message} onRetry={() => void retry()} />
+        isUnauthorized ? null : (
+          <ErrorState message={error.message} onRetry={() => void retry()} />
+        )
       ) : showSkeleton ? (
         <BooksSkeleton label={t("dashboard.skeletonAria")} />
       ) : books.length === 0 ? (

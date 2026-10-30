@@ -13,6 +13,13 @@ import { createServerClient } from "@/lib/supabase/server";
  * - Verifica la sesión en el servidor (redirige a `/login` si no hay usuario).
  * - `SessionProvider` (Client) provee session/user a todo el árbol.
  * - `DashboardHeader` (avatar + logout) + Sidebar + main + Footer.
+ *
+ * Decisión Z5-09 (feature 028): `SessionProvider`, `DashboardHeader` y
+ * `Sidebar` permanecen como client components porque requieren estado, hooks o
+ * eventos de cliente — `SessionProvider` usa `useState`/`useEffect` +
+ * `onAuthStateChange`; `DashboardHeader` usa `useState` + `useRouter`; `Sidebar`
+ * usa `usePathname` + estado local del drawer móvil. No se extraen a Server
+ * Components en esta feature (ver `plan.md` §Decisiones).
  */
 export default async function DashboardLayout({
   children,

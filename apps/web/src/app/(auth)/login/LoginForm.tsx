@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase/client";
 import { loginSchema, type LoginValues } from "@/lib/validations";
 import { useTranslation } from "@/lib/i18n";
+import { safeRedirectTo, withRedirectTo } from "@/lib/auth/redirect";
 
 /**
  * Formulario de inicio de sesión (email/password + Google OAuth).
@@ -30,9 +31,14 @@ import { useTranslation } from "@/lib/i18n";
  */
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Destino post-login validado (feature 028): el middleware guarda
+  // `?redirectTo=<ruta>` al expulsar a login; valores externos → `/dashboard`.
+  const safeNext = safeRedirectTo(searchParams.get("redirectTo"));
 
   const {
     register,
@@ -52,7 +58,7 @@ export function LoginForm() {
         return;
       }
       toast.success(t("auth.login.sessionStarted"));
-      router.push("/dashboard");
+      router.push(safeNext);
     } catch {
       toast.error(t("auth.login.unexpected"));
     } finally {
@@ -63,10 +69,14 @@ export function LoginForm() {
   async function handleGoogleLogin() {
     setIsGoogleLoading(true);
     try {
-      const redirectTo = new URL("/auth/callback", window.location.origin).href;
+      // Se pasa el destino validado al callback OAuth via `?next=` para que,
+      // tras canjear el code, el usuario vuelva a la ruta original (no siempre
+      // a `/dashboard`). Supabase añadirá `?code=...` al redirectTo.
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", safeNext);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo },
+        options: { redirectTo: callbackUrl.href },
       });
       if (error) {
         toast.error(error.message);
@@ -150,7 +160,7 @@ export function LoginForm() {
         <p className="text-sm text-muted-foreground">
           {t("auth.login.noAccount")}{" "}
           <Link
-            href="/register"
+            href={withRedirectTo("/register", searchParams.get("redirectTo"))}
             className="text-primary underline-offset-4 hover:underline"
           >
             {t("auth.login.register")}

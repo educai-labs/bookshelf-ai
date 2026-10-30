@@ -1,47 +1,51 @@
+---
+estado: "hecho"
+---
+
 # 028 · Navigation & Layout Robustness — Tareas
 
-- [ ] Auditar las rutas existentes del App Router y preparar el mapa de rutas usado por las pruebas de navegación.
-- [ ] Cambiar el destino del item "Libros" de `Sidebar` a `/dashboard` y conservar los demás destinos válidos.
-- [ ] Convertir la marca "Bookshelf" de `DashboardHeader` en un `Link` con destino `/dashboard`.
-- [ ] Derivar el enlace activo de `Sidebar` a partir del pathname y exponer `aria-current="page"`.
-- [ ] Mantener las clases y el sidebar fijo desde el breakpoint `sm` en adelante.
-- [ ] Implementar el estado cerrado por defecto del sidebar para viewport menor de `640px`.
-- [ ] Añadir el botón de menú móvil con etiqueta accesible traducida.
-- [ ] Implementar el drawer móvil con overlay y sin ocupar el contenido cuando está cerrado.
-- [ ] Implementar el cierre del drawer mediante Escape y click en el overlay.
-- [ ] Configurar roles, foco y atributos ARIA apropiados para el drawer y su botón.
-- [ ] Integrar la composición responsive del sidebar y del botón de menú en el layout `(dashboard)`.
-- [ ] Añadir tests de render para destinos, enlace activo y `aria-current` del `Sidebar`.
-- [ ] Añadir tests del drawer para estado inicial, apertura, cierre por Escape, overlay y teclado.
-- [ ] Añadir `apps/web/src/app/not-found.tsx` con UI shadcn, textos i18n y acción para volver a `/dashboard`.
-- [ ] Añadir `apps/web/src/app/error.tsx` como client component con UI i18n y acción `reset` para reintentar.
-- [ ] Añadir `apps/web/src/app/global-error.tsx` con documento explícito válido (`html` y `body`) y botón i18n de recarga.
-- [ ] Añadir tests de render de las boundaries y verificar que sustituyen la UI por defecto de Next en una ruta o Server Component de prueba.
-- [ ] Crear una utilidad compartida para validar `redirectTo` como ruta interna relativa y usar `/dashboard` como fallback.
-- [ ] Aplicar la utilidad de destinos seguros al login por email y preservar `redirectTo` en la URL de login.
-- [ ] Aplicar la utilidad de destinos seguros al flujo OAuth del login y navegar al destino validado.
-- [ ] Aplicar la utilidad de destinos seguros al registro por email y al registro OAuth.
-- [ ] Aplicar la validación del destino seguro en `auth/callback/route.ts` y pasar el resultado al callback OAuth.
-- [ ] Añadir tests de `redirectTo` para rutas internas con query, valores vacíos, `//`, esquemas, hostnames y payloads malformados.
-- [ ] Actualizar `useBooks` para lanzar un error tipado con `status` y `code` sin perder el cuerpo HTTP relevante.
-- [ ] Implementar el manejo de 401 en el flujo de biblioteca redirigiendo a `/login` con pathname y query actuales.
-- [ ] Mantener `ErrorState` para errores 5xx y conservar el retry de la biblioteca.
-- [ ] Añadir tests de `useBooks` y del componente de biblioteca para respuestas 401, 500, retry y errores de paginación.
-- [ ] Alinear el seed SSR de la página dashboard con el criterio del API para buscar por título y autor, incluido el formato `authors`.
-- [ ] Actualizar los tests de la página dashboard para el criterio de búsqueda SSR.
-- [ ] Añadir una prueba de paridad que compare resultados SSR y cliente para búsquedas por título y por autor.
-- [ ] Leer y normalizar la cookie de preferencia de idioma en el layout raíz para producir `lang="es"` o `lang="en"` durante SSR.
-- [ ] Sincronizar la cookie de idioma desde `SettingsContext` junto con la preferencia de cliente.
-- [ ] Mantener la actualización inmediata de `document.documentElement.lang` al cambiar el idioma.
-- [ ] Añadir las claves i18n de errores, not-found, menú y drawer en los diccionarios `es` y `en`.
-- [ ] Añadir tests que detecten claves i18n huérfanas y cubran las nuevas claves en ambos idiomas.
-- [ ] Mover `ConfirmDialog` a `apps/web/src/components/ui/ConfirmDialog.tsx`.
-- [ ] Actualizar los imports de settings, `BookHeader` y `NoteCard` para usar el módulo común de `components/ui`.
-- [ ] Verificar mediante grep y tests que `book-detail` no importa desde `components/settings`.
-- [ ] Documentar en `providers.tsx` y en el layout `(dashboard)` por qué Providers, SessionProvider, DashboardHeader y Sidebar permanecen como client components.
-- [ ] Ejecutar `cd apps/web && npm run test` y corregir regresiones de la feature.
-- [ ] Ejecutar `cd apps/web && npm run lint` y corregir advertencias o errores introducidos.
-- [ ] Ejecutar `cd apps/web && npm run build` y corregir errores de compilación o prerenderizado.
-- [ ] Actualizar documentación si aplica.
-- [ ] Validar contra los criterios de aceptación de `spec.md`.
-- [ ] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.
+- [x] Auditar las rutas existentes del App Router y preparar el mapa de rutas usado por las pruebas de navegación.
+- [x] Cambiar el destino del item "Libros" de `Sidebar` a `/dashboard` y conservar los demás destinos válidos.
+- [x] Convertir la marca "Bookshelf" de `DashboardHeader` en un `Link` con destino `/dashboard`.
+- [x] Derivar el enlace activo de `Sidebar` a partir del pathname y exponer `aria-current="page"`.
+- [x] Mantener las clases y el sidebar fijo desde el breakpoint `sm` en adelante.
+- [x] Implementar el estado cerrado por defecto del sidebar para viewport menor de `640px`.
+- [x] Añadir el botón de menú móvil con etiqueta accesible traducida.
+- [x] Implementar el drawer móvil con overlay y sin ocupar el contenido cuando está cerrado.
+- [x] Implementar el cierre del drawer mediante Escape y click en el overlay.
+- [x] Configurar roles, foco y atributos ARIA apropiados para el drawer y su botón.
+- [x] Integrar la composición responsive del sidebar y del botón de menú en el layout `(dashboard)`.
+- [x] Añadir tests de render para destinos, enlace activo y `aria-current` del `Sidebar`.
+- [x] Añadir tests del drawer para estado inicial, apertura, cierre por Escape, overlay y teclado.
+- [x] Añadir `apps/web/src/app/not-found.tsx` con UI shadcn, textos i18n y acción para volver a `/dashboard`.
+- [x] Añadir `apps/web/src/app/error.tsx` como client component con UI i18n y acción `reset` para reintentar.
+- [x] Añadir `apps/web/src/app/global-error.tsx` con documento explícito válido (`html` y `body`) y botón i18n de recarga.
+- [x] Añadir tests de render de las boundaries y verificar que sustituyen la UI por defecto de Next en una ruta o Server Component de prueba.
+- [x] Crear una utilidad compartida para validar `redirectTo` como ruta interna relativa y usar `/dashboard` como fallback.
+- [x] Aplicar la utilidad de destinos seguros al login por email y preservar `redirectTo` en la URL de login.
+- [x] Aplicar la utilidad de destinos seguros al flujo OAuth del login y navegar al destino validado.
+- [x] Aplicar la utilidad de destinos seguros al registro por email y al registro OAuth.
+- [x] Aplicar la validación del destino seguro en `auth/callback/route.ts` y pasar el resultado al callback OAuth.
+- [x] Añadir tests de `redirectTo` para rutas internas con query, valores vacíos, `//`, esquemas, hostnames y payloads malformados.
+- [x] Actualizar `useBooks` para lanzar un error tipado con `status` y `code` sin perder el cuerpo HTTP relevante.
+- [x] Implementar el manejo de 401 en el flujo de biblioteca redirigiendo a `/login` con pathname y query actuales.
+- [x] Mantener `ErrorState` para errores 5xx y conservar el retry de la biblioteca.
+- [x] Añadir tests de `useBooks` y del componente de biblioteca para respuestas 401, 500, retry y errores de paginación.
+- [x] Alinear el seed SSR de la página dashboard con el criterio del API para buscar por título y autor, incluido el formato `authors`.
+- [x] Actualizar los tests de la página dashboard para el criterio de búsqueda SSR.
+- [x] Añadir una prueba de paridad que compare resultados SSR y cliente para búsquedas por título y por autor.
+- [x] Leer y normalizar la cookie de preferencia de idioma en el layout raíz para producir `lang="es"` o `lang="en"` durante SSR.
+- [x] Sincronizar la cookie de idioma desde `SettingsContext` junto con la preferencia de cliente.
+- [x] Mantener la actualización inmediata de `document.documentElement.lang` al cambiar el idioma.
+- [x] Añadir las claves i18n de errores, not-found, menú y drawer en los diccionarios `es` y `en`.
+- [x] Añadir tests que detecten claves i18n huérfanas y cubran las nuevas claves en ambos idiomas.
+- [x] Mover `ConfirmDialog` a `apps/web/src/components/ui/ConfirmDialog.tsx`.
+- [x] Actualizar los imports de settings, `BookHeader` y `NoteCard` para usar el módulo común de `components/ui`.
+- [x] Verificar mediante grep y tests que `book-detail` no importa desde `components/settings`.
+- [x] Documentar en `providers.tsx` y en el layout `(dashboard)` por qué Providers, SessionProvider, DashboardHeader y Sidebar permanecen como client components.
+- [x] Ejecutar `cd apps/web && npm run test` y corregir regresiones de la feature.
+- [x] Ejecutar `cd apps/web && npm run lint` y corregir advertencias o errores introducidos.
+- [x] Ejecutar `cd apps/web && npm run build` y corregir errores de compilación o prerenderizado.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.

@@ -125,6 +125,9 @@ describe("SettingsContext", () => {
     await user.click(screen.getByText("set-en"));
     expect(screen.getByTestId("language")).toHaveTextContent("en");
 
+    // Z5-07: actualización inmediata de `document.documentElement.lang`.
+    expect(document.documentElement.lang).toBe("en");
+
     const stored = JSON.parse(
       window.localStorage.getItem("bookshelf:settings") ?? "{}",
     );

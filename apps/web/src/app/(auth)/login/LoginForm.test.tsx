@@ -9,8 +9,11 @@ const mocks = vi.hoisted(() => ({
   signInWithOAuth: vi.fn(),
 }));
 
+const searchParamsState = vi.hoisted(() => ({ value: new URLSearchParams() }));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push }),
+  useSearchParams: () => searchParamsState.value,
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -38,8 +41,15 @@ describe("LoginForm", () => {
     mocks.push.mockReset();
     mocks.signInWithPassword.mockReset();
     mocks.signInWithOAuth.mockReset();
+    searchParamsState.value = new URLSearchParams();
     vi.clearAllMocks();
   });
+
+  function expectedOAuthRedirectTo(next: string): string {
+    const url = new URL("/auth/callback", window.location.origin);
+    url.searchParams.set("next", next);
+    return url.href;
+  }
 
   function fillAndSubmit() {
     fireEvent.change(screen.getByLabelText(/email/i), {
@@ -114,9 +124,63 @@ describe("LoginForm", () => {
       expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
         provider: "google",
         options: {
-          redirectTo: new URL("/auth/callback", window.location.origin).href,
+          redirectTo: expectedOAuthRedirectTo("/dashboard"),
         },
       }),
+    );
+  });
+
+  it("preserva redirectTo válido tras el login por email", async () => {
+    searchParamsState.value = new URLSearchParams({
+      redirectTo: "/book/abc?tab=notes",
+    });
+    mocks.signInWithPassword.mockResolvedValue({ error: null });
+
+    render(<LoginForm />);
+    fillAndSubmit();
+
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith("/book/abc?tab=notes"),
+    );
+  });
+
+  it("cae a /dashboard ante un redirectTo externo o malformado", async () => {
+    searchParamsState.value = new URLSearchParams({
+      redirectTo: "https://evil.example",
+    });
+    mocks.signInWithPassword.mockResolvedValue({ error: null });
+
+    render(<LoginForm />);
+    fillAndSubmit();
+
+    await waitFor(() => expect(mocks.push).toHaveBeenCalledWith("/dashboard"));
+  });
+
+  it("pasa el destino seguro al callback OAuth", async () => {
+    searchParamsState.value = new URLSearchParams({ redirectTo: "/settings" });
+    mocks.signInWithOAuth.mockResolvedValue({ error: null });
+
+    render(<LoginForm />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /continuar con google/i }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "google",
+        options: { redirectTo: expectedOAuthRedirectTo("/settings") },
+      }),
+    );
+  });
+
+  it("preserva redirectTo en el enlace a /register", () => {
+    searchParamsState.value = new URLSearchParams({ redirectTo: "/book/abc" });
+
+    render(<LoginForm />);
+
+    expect(screen.getByRole("link", { name: /regístrate/i })).toHaveAttribute(
+      "href",
+      "/register?redirectTo=%2Fbook%2Fabc",
     );
   });
 
