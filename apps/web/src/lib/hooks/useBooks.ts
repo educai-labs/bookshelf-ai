@@ -5,10 +5,10 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { ApiError } from "@/lib/api/books";
+import { PAGE_SIZE } from "@/lib/constants/pagination";
 import { supabase } from "@/lib/supabase/client";
 import type { Book, BookFilters, PaginatedBooks } from "@/types/book";
 
-export const DEFAULT_PAGE_SIZE = 20;
 export const SEARCH_DEBOUNCE_MS = 300;
 
 export interface UseBooksOptions {
@@ -129,7 +129,7 @@ export function useBooks(
   filters: BookFilters,
   options: UseBooksOptions = {},
 ): UseBooksResult {
-  const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE;
+  const pageSize = options.pageSize ?? PAGE_SIZE;
   const initialBooks = options.initialBooks ?? EMPTY_BOOKS;
   const initialTotal = options.initialTotal ?? 0;
 

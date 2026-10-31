@@ -1,6 +1,6 @@
 # 030 · Visual Consistency Polish
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

@@ -32,12 +32,11 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 26. **027 · Book Detail & Notes Polish** — Fixes Z3-01…Z3-10/12/13: previsualización de notas que renderiza Markdown de verdad, fuente de datos de notas unificada y paginada (nota 51+ visible), ficha robusta ante fallos de red, tipos compartidos y limpieza de props/invalidaciones muertas + teclado en estrellas.
 27. **028 · Navigation & Layout Robustness** — Fixes Z5-01…Z5-09 + Z1-03/04: item "Libros" sin 404, `error.tsx`/`not-found.tsx`/`global-error.tsx`, sidebar drawer en móvil con `aria-current`, `redirectTo` respetado tras login (validado, sin open redirects), 401→login con status preservado, paridad título+autor en el seed SSR y ConfirmDialog desacoplado a `components/ui`.
 28. **029 · Chat AI Perf & A11y** — Fixes Z4-01…Z4-09: historial sin serializar en cada token (debounce/fin de stream), Markdown memoizado por mensaje, AbortController + botón "Detener", `aria-live`/`role="status"` y keys estables, `rel="noopener noreferrer"` en el sanitize y Alert de error con título y reintento.
+29. **030 · Visual Consistency Polish** — Fixes Z1-05…Z1-09 + Z3-11: constante única de page size, filtros del dashboard sincronizados con la URL (compartir/bookmark/atrás), fallback de autores unificado, mapa único status→badge, BookCard con `<Link>` (prefetch) y un solo primitivo de estrellas.
 
 ## Siguiente 🔜
 
 _Lo próximo a abordar. Idealmente una sola feature "en curso" a la vez._
-
-23. **030 · Visual Consistency Polish** — Fixes Z1-05…Z1-09 + Z3-11: constante única de page size, filtros del dashboard sincronizados con la URL (compartir/bookmark/atrás), fallback de autores unificado, mapa único status→badge, BookCard con `<Link>` (prefetch) y un solo primitivo de estrellas.
 
 ## Backlog / ideas 💡
 

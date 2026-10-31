@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,6 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAddBookModal } from "@/components/books/AddBookModalProvider";
 import { ApiError } from "@/lib/api/books";
 import { useBooks } from "@/lib/hooks/useBooks";
+import {
+  DEFAULT_BOOK_FILTERS,
+  parseFilters,
+  serializeFilters,
+} from "@/lib/books/filters";
 import type { Book, BookFilters, BookSuggestion } from "@/types/book";
 import { useTranslation } from "@/lib/i18n";
 import { pluralize } from "@/lib/formatters";
@@ -31,8 +36,6 @@ export interface LibraryGridProps {
   initialFilters?: BookFilters;
 }
 
-const DEFAULT_FILTERS: BookFilters = { q: "" };
-
 /** Skeleton del primer fetch: grid de 8 cards (espejo del grid real). */
 function BooksSkeleton({ label }: { label: string }) {
   return (
@@ -49,8 +52,11 @@ function BooksSkeleton({ label }: { label: string }) {
 }
 
 /**
- * Grid principal del dashboard (features 013 + 023):
- * - Estado interno de `filters` (status, rating, q) con merge del seed.
+ * Grid principal del dashboard (features 013 + 023 + 030):
+ * - Estado de `filters` (status, rating, q) con merge del seed.
+ * - La URL es la fuente de verdad: los cambios se escriben con navegación
+ *   cliente (`router.push`) y los cambios externos de `useSearchParams`
+ *   (atrás/adelante, enlace compartido, refresh) rehidratan los filtros.
  * - Data engine en `useBooks` (debounce 300ms de `q`, reset+fetch en cambio
  *   de filtros, paginación "Cargar más" con append).
  * - Buscador combinado (`SearchInput`) con sugerencias en vivo: seleccionar una
@@ -69,10 +75,26 @@ export function LibraryGrid({
   const searchParams = useSearchParams();
   const { t, language } = useTranslation();
   const { openAddBook } = useAddBookModal();
-  const [filters, setFilters] = useState<BookFilters>({
-    ...DEFAULT_FILTERS,
+
+  const [filters, setFilters] = useState<BookFilters>(() => ({
+    ...DEFAULT_BOOK_FILTERS,
     ...initialFilters,
-  });
+  }));
+
+  // La URL es fuente de verdad para cambios EXTERNOS (atrás/adelante, o
+  // navegación a la misma ruta con otros params). `syncedQueryRef` registra la
+  // query ya sincronizada para no rehidratar en el montaje (donde
+  // `initialFilters` ya refleja la URL) ni reintroducir valores cuando la
+  // escribimos nosotros mismos. `parseFilters` descarta valores inválidos y
+  // conserva los defaults.
+  const syncedQueryRef = useRef(searchParams.toString());
+
+  useEffect(() => {
+    const currentQuery = searchParams.toString();
+    if (currentQuery === syncedQueryRef.current) return;
+    syncedQueryRef.current = currentQuery;
+    setFilters(parseFilters(searchParams));
+  }, [searchParams]);
 
   const {
     books,
@@ -99,22 +121,35 @@ export function LibraryGrid({
     router.replace(`/login?redirectTo=${encodeURIComponent(current)}`);
   }, [isUnauthorized, pathname, searchParams, router]);
 
+  // Aplica un cambio de filtros: actualiza el estado y escribe la URL
+  // normalizada con navegación cliente (sin recarga dura), evitando
+  // navegaciones redundantes cuando la query resultante no cambia.
+  function applyFilters(next: BookFilters) {
+    setFilters(next);
+    const nextQuery = serializeFilters(next).toString();
+    if (nextQuery === searchParams.toString()) return;
+    syncedQueryRef.current = nextQuery;
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
+  }
+
   function handleStatusChange(value: StatusFilterValue) {
-    setFilters((prev) => ({
-      ...prev,
+    applyFilters({
+      ...filters,
       status: value === "all" ? undefined : value,
-    }));
+    });
   }
 
   function handleRatingChange(value: RatingFilterValue) {
-    setFilters((prev) => ({
-      ...prev,
+    applyFilters({
+      ...filters,
       rating_min: value === "all" ? undefined : value,
-    }));
+    });
   }
 
   function handleSearchChange(q: string) {
-    setFilters((prev) => ({ ...prev, q }));
+    applyFilters({ ...filters, q });
   }
 
   function handleSelectSuggestion(item: BookSuggestion) {
@@ -169,11 +204,7 @@ export function LibraryGrid({
             data-testid="books-grid"
           >
             {books.map((book) => (
-              <BookCard
-                key={book.id}
-                book={book}
-                onClick={() => router.push(`/book/${book.id}`)}
-              />
+              <BookCard key={book.id} book={book} />
             ))}
           </div>
           {hasMore && (
