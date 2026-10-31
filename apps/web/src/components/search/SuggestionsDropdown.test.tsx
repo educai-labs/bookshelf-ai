@@ -29,7 +29,7 @@ function catalogSuggestion(isbn13: string, title: string): BookSuggestion {
     isbn13,
     title,
     authors: ["Autor Dos"],
-    cover_url: "https://covers.openlibrary.org/b/id/1-M.jpg",
+    cover_url: "https://covers.openlibrary.org/b/id/1-L.jpg",
     in_library: false,
   };
 }

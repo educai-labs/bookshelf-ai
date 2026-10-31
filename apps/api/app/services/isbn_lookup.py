@@ -49,6 +49,25 @@ SEARCH_TIMEOUT_SECONDS = 2.0
 SEARCH_CACHE_TTL_SECONDS = 3600  # TTL 1 hora (mismo patrón que el lookup ISBN)
 
 
+def _normalizar_url_google_books(url: str | None) -> str | None:
+    """Normaliza una URL de portada de Google Books a alta resolución (feature 032).
+
+    - Fuerza el scheme `https`: los `thumbnail` de Google Books llegan a menudo
+      como `http://`, que el optimizador https-only de `next/image` rechaza.
+    - Sustituye `zoom=1` (~128px) por `zoom=3` (~480px) conservando el resto de
+      parámetros (`edge`, `source`, etc.). No toca `zoom=10`, `zoom=11`, …
+      (el límite `\b` evita coincidir con valores de más de un dígito).
+    - Devuelve `None` si la entrada es `None` o vacía.
+
+    Es una función pura sin dependencias: se reutiliza tanto en el lookup por
+    ISBN como en la búsqueda textual (fallback de Google Books).
+    """
+    if not url:
+        return None
+    url = re.sub(r"^http://", "https://", url, flags=re.IGNORECASE)
+    return re.sub(r"zoom=1\b", "zoom=3", url)
+
+
 class ISBNLookupService:
     """Orquesta la búsqueda de metadatos de un libro por ISBN-13.
 
@@ -219,7 +238,7 @@ class ISBNLookupService:
                     title=title,
                     authors=[a for a in (doc.get("author_name") or []) if isinstance(a, str)],
                     cover_url=(
-                        f"https://covers.openlibrary.org/b/id/{cover_i}-M.jpg" if cover_i else None
+                        f"https://covers.openlibrary.org/b/id/{cover_i}-L.jpg" if cover_i else None
                     ),
                 )
             )
@@ -251,7 +270,7 @@ class ISBNLookupService:
                     isbn13=isbn13,
                     title=title,
                     authors=[a for a in (volume.get("authors") or []) if isinstance(a, str)],
-                    cover_url=image_links.get("thumbnail"),
+                    cover_url=_normalizar_url_google_books(image_links.get("thumbnail")),
                 )
             )
         return results
@@ -413,7 +432,7 @@ class ISBNLookupService:
                 for author in (data.get("authors") or [])
                 if author.get("name")
             ],
-            cover_url=cover.get("small") or cover.get("medium") or cover.get("large"),
+            cover_url=cover.get("large") or cover.get("medium") or cover.get("small"),
             page_count=data.get("number_of_pages"),
             publisher=publishers[0].get("name") if publishers else None,
             published_date=data.get("publish_date"),
@@ -431,7 +450,7 @@ class ISBNLookupService:
         lo contiene, devuelve `None` y el flujo continúa a Google Books.
 
         - `title` ← `title`; `authors` ← `author_name`
-        - `cover_url` ← `https://covers.openlibrary.org/b/id/<cover_i>-M.jpg`
+        - `cover_url` ← `https://covers.openlibrary.org/b/id/<cover_i>-L.jpg`
           (`None` si no hay `cover_i`)
         - `published_date` ← `str(first_publish_year)` (`None` si no viene)
         - `description`, `page_count`, `publisher` quedan en `None` (search.json
@@ -450,7 +469,7 @@ class ISBNLookupService:
                     author for author in (doc.get("author_name") or []) if isinstance(author, str)
                 ],
                 cover_url=(
-                    f"https://covers.openlibrary.org/b/id/{cover_i}-M.jpg" if cover_i else None
+                    f"https://covers.openlibrary.org/b/id/{cover_i}-L.jpg" if cover_i else None
                 ),
                 published_date=str(first_publish_year) if first_publish_year else None,
             )
@@ -463,7 +482,7 @@ class ISBNLookupService:
         return ISBNLookupResponse(
             title=data.get("title") or "",
             authors=[author for author in (data.get("authors") or []) if isinstance(author, str)],
-            cover_url=image_links.get("thumbnail"),
+            cover_url=_normalizar_url_google_books(image_links.get("thumbnail")),
             page_count=data.get("pageCount"),
             publisher=data.get("publisher"),
             published_date=data.get("publishedDate"),

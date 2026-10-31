@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { InteractiveRatingStars } from "../InteractiveRatingStars";
@@ -72,5 +72,23 @@ describe("InteractiveRatingStars", () => {
     await user.keyboard(" ");
 
     expect(onChange).toHaveBeenCalledWith(2);
+  });
+
+  it("usa el mapa de tamaños compartido (sm = size-3, coherente con RatingStars)", () => {
+    const { container } = render(
+      <InteractiveRatingStars rating={3} onChange={vi.fn()} size="sm" />,
+    );
+
+    expect(container.querySelector("svg")).toHaveClass("size-3");
+  });
+
+  it("borra el rating al pulsar la misma estrella llena", () => {
+    const onChange = vi.fn();
+    render(<InteractiveRatingStars rating={3} onChange={onChange} />);
+
+    const buttons = screen.getAllByRole("radio");
+    fireEvent.click(buttons[2]!);
+
+    expect(onChange).toHaveBeenCalledWith(null);
   });
 });

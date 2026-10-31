@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { PAGE_SIZE } from "@/lib/constants/pagination";
 import { matchesBookQuery } from "@/lib/books/search";
 import { createServerClient } from "@/lib/supabase/server";
 import type { Book, BookFilters } from "@/types/book";
@@ -7,8 +8,6 @@ import type { Book, BookFilters } from "@/types/book";
 // Seed SSR del dashboard (feature 028). Solo servidor: usa `createServerClient`
 // (cookies de auth via `next/headers`). Extraído de `page.tsx` para no exportar
 // helpers que Next interpreta como "Page export fields" inválidos.
-
-export const DASHBOARD_PAGE_SIZE = 20;
 
 export interface InitialBooks {
   books: Book[];
@@ -96,7 +95,7 @@ export async function getInitialBooks(
     query = query.in("id", matchedIds);
   }
 
-  const { data, count, error } = await query.range(0, DASHBOARD_PAGE_SIZE - 1);
+  const { data, count, error } = await query.range(0, PAGE_SIZE - 1);
 
   if (error || !data) {
     return { books: [], total: 0 };

@@ -1,0 +1,48 @@
+---
+estado: "hecho"
+---
+
+# 032 · Book Cover Quality — Tareas
+
+- [x] Revisar el flujo actual de `ISBNLookupService`, sus mapeadores, caché TTL y reintentos antes de modificarlo.
+- [x] Centralizar un helper para normalizar URLs de Google Books, forzando `https` y sustituyendo `zoom=1` por `zoom=3` sin perder los demás parámetros.
+- [x] Actualizar el mapeo de Open Library `/api/books` para elegir `cover.large`, después `cover.medium` y por último `cover.small`.
+- [x] Actualizar el mapeo de Open Library `search.json` para construir portadas con el sufijo `-L.jpg` cuando exista `cover_i` y devolver `None` cuando no exista.
+- [x] Aplicar los helpers de portadas normalizadas al lookup por ISBN y a la búsqueda textual sin cambiar los modelos Pydantic ni los contratos de respuesta.
+- [x] Confirmar que la normalización de Google Books se aplica antes de devolver o persistir la portada en todos los caminos de fallback.
+- [x] Crear `apps/api/scripts/backfill_cover_urls.py` como comando asíncrono administrativo de una sola ejecución, sin endpoint público ni ejecución durante el arranque de FastAPI.
+- [x] Inicializar en el backfill el cliente Supabase con `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`, fallando de forma clara si falta cualquiera y sin registrar secretos.
+- [x] Implementar la lectura de `id`, `isbn13` y `cover_url` desde `books` usando el cliente `service_role`.
+- [x] Deduplicar los ISBN13 en memoria y reutilizar el `ISBNLookupService` compartido y su caché TTL de una hora.
+- [x] Implementar el backfill por lotes documentados de hasta 50 ISBN únicos.
+- [x] Implementar un limitador de Open Library de como máximo 100 solicitudes por ventana de 60 segundos.
+- [x] Hacer que el limitador cuente cada intento HTTP, incluidos reintentos y el fallback a `search.json`, y espere la siguiente ventana antes de continuar.
+- [x] Actualizar únicamente `cover_url` mediante `UPDATE books ... WHERE id = ...` cuando el re-lookup devuelva una URL no vacía y utilizable.
+- [x] Conservar intacta cada fila cuando el re-lookup produzca error, timeout, rate limit, ausencia de portada o resultado no utilizable.
+- [x] Registrar el resultado de cada libro o ISBN y emitir al finalizar un resumen de procesados, actualizados, conservados por fallo o ausencia de portada y errores.
+- [x] Añadir documentación de uso, variables requeridas, límites, comportamiento fail-soft y ausencia de ejecución automática en el propio script.
+- [x] Añadir fixtures de `/api/books` con `large`, `medium` y `small` y probar la prioridad `large → medium → small` en `apps/api/app/services/test_isbn_lookup.py`.
+- [x] Probar en `apps/api/app/services/test_isbn_lookup.py` que `search.json` construye URLs `https://covers.openlibrary.org/b/id/<cover_i>-L.jpg` y devuelve `None` sin `cover_i`.
+- [x] Probar en `apps/api/app/services/test_isbn_lookup.py` la normalización de Google Books con `http`, `https`, `zoom=1`, ausencia de zoom y parámetros adicionales.
+- [x] Probar que lookup por ISBN y búsqueda textual aplican las mismas normalizaciones sin cambiar el modelo ni el contrato de respuesta.
+- [x] Actualizar `apps/api/app/api/v1/test_lookup.py` para verificar que el endpoint devuelve la portada de mayor resolución y conserva su contrato.
+- [x] Actualizar `apps/api/app/api/v1/test_suggestions.py` para verificar las portadas `-L.jpg` y las URLs de Google Books normalizadas.
+- [x] Actualizar `apps/api/tests/test_books.py` para verificar que `POST /api/v1/books` persiste la URL normalizada de alta resolución.
+- [x] Añadir tests unitarios del backfill para éxito y actualización exclusiva de `cover_url`.
+- [x] Añadir tests unitarios del backfill para error, timeout, ausencia de portada y resultado no utilizable, verificando que la portada existente se conserva.
+- [x] Añadir tests unitarios del backfill para deduplicación de ISBN13, reutilización del resultado y actualización de todas las filas correspondientes.
+- [x] Añadir tests unitarios del backfill para límites por lote, conteo de intentos Open Library y resumen de resultados.
+- [x] Actualizar los fixtures y expectativas de portadas `-M.jpg` y de Google Books bajo `apps/web/src/**` a las URLs normalizadas, sin modificar componentes ni layout.
+- [x] Confirmar mediante revisión que `BookCard`, `BookHeader`, `BookMetadataPreview`, sus contenedores, `sizes`, `width` y `apps/web/next.config.mjs` permanecen sin cambios.
+- [x] Ejecutar `cd apps/api && pytest -v` y corregir cualquier fallo de la suite backend.
+- [x] Ejecutar `cd apps/api && ruff check .` y corregir cualquier incumplimiento.
+- [x] Ejecutar `cd apps/api && black --check .` y corregir cualquier incumplimiento de formato.
+- [x] Ejecutar `cd apps/web && npm run test` y corregir cualquier fallo de la suite frontend.
+- [x] Ejecutar `cd apps/web && npm run lint` y corregir cualquier incumplimiento.
+- [x] Ejecutar `cd apps/web && npm run build` y corregir cualquier fallo de compilación.
+- [x] Ejecutar el backfill únicamente contra el entorno autorizado, conservar su salida como evidencia y registrar las cantidades actualizadas y conservadas en esta checklist.
+  - Evidencia: entorno Supabase configurado (`apps/api/.env`); salida en `/tmp/opencode/backfill-032.log`; exit 0; 12 libros / 12 ISBN únicos procesados; 9 portadas actualizadas a `-L.jpg`; 0 conservadas por ausencia de portada; 3 conservadas por `ISBNNotFoundError`; 0 errores de actualización; 18 intentos HTTP a Open Library; verificación posterior: 9 degradadas antes → 0 después.
+- [x] Confirmar que no se modificó ningún archivo de `supabase/migrations/` ni se añadió un endpoint o tarea de arranque para el backfill.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.

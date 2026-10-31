@@ -83,7 +83,7 @@ describe("DashboardPage (Server Component)", () => {
       error: null,
     });
 
-    const element = (await DashboardPage()) as ReactElement<LibraryGridProps>;
+    const element = (await DashboardPage({})) as ReactElement<LibraryGridProps>;
 
     // getUser (server) para obtener el user_id.
     expect(mocks.clientMock.auth.getUser).toHaveBeenCalledTimes(1);
@@ -118,11 +118,49 @@ describe("DashboardPage (Server Component)", () => {
       error: null,
     });
 
-    const element = (await DashboardPage()) as ReactElement<LibraryGridProps>;
+    const element = (await DashboardPage({})) as ReactElement<LibraryGridProps>;
 
     expect(element.props.initialBooks).toEqual([]);
     expect(element.props.initialTotal).toBe(0);
     // Sin usuario → no se consulta la tabla.
     expect(mocks.clientMock.from).not.toHaveBeenCalled();
+  });
+
+  it("parses searchParams into initial filters (status + rating)", async () => {
+    resetChain([], 0);
+    mocks.clientMock.auth.getUser.mockResolvedValue({
+      data: { user: { id: "u1", email: "ana@example.com" } },
+      error: null,
+    });
+
+    const element = (await DashboardPage({
+      searchParams: { status: "reading", rating: "4" },
+    })) as ReactElement<LibraryGridProps>;
+
+    expect(element.props.initialFilters).toEqual({
+      q: "",
+      status: "reading",
+      rating_min: 4,
+    });
+    // Los filtros se aplican a la query de Supabase.
+    expect(mocks.chain.eq).toHaveBeenCalledWith("status", "reading");
+    expect(mocks.chain.gte).toHaveBeenCalledWith("rating", 4);
+  });
+
+  it("discards invalid/unknown searchParams", async () => {
+    resetChain([], 0);
+    mocks.clientMock.auth.getUser.mockResolvedValue({
+      data: { user: { id: "u1", email: "ana@example.com" } },
+      error: null,
+    });
+
+    const element = (await DashboardPage({
+      searchParams: { status: "bogus", rating: "99", unknown: "x" },
+    })) as ReactElement<LibraryGridProps>;
+
+    expect(element.props.initialFilters).toEqual({ q: "" });
+    expect(mocks.chain.gte).not.toHaveBeenCalled();
+    // `eq` solo con user_id, no con un status inválido.
+    expect(mocks.chain.eq).toHaveBeenCalledWith("user_id", "u1");
   });
 });

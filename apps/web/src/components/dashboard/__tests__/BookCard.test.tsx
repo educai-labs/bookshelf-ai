@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { Book } from "@/types/book";
 import { BookCard } from "../BookCard";
@@ -30,7 +30,7 @@ function makeBook(overrides: Partial<Book> = {}): Book {
 
 describe("BookCard", () => {
   it("renders cover, title, author, status badge and rating stars", () => {
-    render(<BookCard book={makeBook()} onClick={() => {}} />);
+    render(<BookCard book={makeBook()} />);
 
     // Portada: alt = título del libro.
     expect(screen.getByAltText("Clean Code")).toBeInTheDocument();
@@ -45,26 +45,21 @@ describe("BookCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("navigates on click", () => {
-    const onClick = vi.fn();
-    render(<BookCard book={makeBook()} onClick={onClick} />);
+  it("renders a real anchor (Link) with the book href", () => {
+    render(<BookCard book={makeBook()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Clean Code" }));
-    expect(onClick).toHaveBeenCalledTimes(1);
+    const link = screen.getByRole("link", { name: "Clean Code" });
+    expect(link).toHaveAttribute("href", "/book/b1");
   });
 
-  it("activates with keyboard Enter", () => {
-    const onClick = vi.fn();
-    render(<BookCard book={makeBook()} onClick={onClick} />);
+  it("shows the i18n fallback for empty authors", () => {
+    render(<BookCard book={makeBook({ authors: [] })} />);
 
-    fireEvent.keyDown(screen.getByRole("button", { name: "Clean Code" }), {
-      key: "Enter",
-    });
-    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Autor desconocido")).toBeInTheDocument();
   });
 
   it("falls back to the SVG placeholder when the cover errors", () => {
-    render(<BookCard book={makeBook()} onClick={() => {}} />);
+    render(<BookCard book={makeBook()} />);
 
     const img = screen.getByAltText("Clean Code");
     fireEvent.error(img);
@@ -74,9 +69,7 @@ describe("BookCard", () => {
   });
 
   it("shows the placeholder directly when there is no cover_url", () => {
-    render(
-      <BookCard book={makeBook({ cover_url: null })} onClick={() => {}} />,
-    );
+    render(<BookCard book={makeBook({ cover_url: null })} />);
 
     expect(screen.getByTestId("cover-placeholder")).toBeInTheDocument();
   });
@@ -86,7 +79,7 @@ describe("BookCard", () => {
     ["reading", "Leyendo"],
     ["read", "Leído"],
   ] as const)("maps status %s to badge label %s", (status, label) => {
-    render(<BookCard book={makeBook({ status })} onClick={() => {}} />);
+    render(<BookCard book={makeBook({ status })} />);
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 });

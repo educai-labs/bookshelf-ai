@@ -258,6 +258,37 @@ def test_suggestions_llama_catalogo_con_tres_o_mas(client, fake_db, lookup_servi
     assert "catalog" in sources
 
 
+def test_suggestions_catalogo_con_portadas_normalizadas(client, fake_db, lookup_service):
+    """Criterio 032: portadas de catálogo llegan normalizadas (-L.jpg / Google https+zoom=3)."""
+    lookup_service.buscar_texto = AsyncMock(
+        return_value=[
+            CatalogSearchResult(
+                isbn13="9780000000004",
+                title="Open Library",
+                cover_url="https://covers.openlibrary.org/b/id/1-L.jpg",
+            ),
+            CatalogSearchResult(
+                isbn13="9780000000005",
+                title="Google Books",
+                cover_url="https://books.google.com/books/content?id=x&img=1&zoom=3&edge=curl",
+            ),
+        ]
+    )
+
+    resp = client.get("/api/v1/books/suggestions?q=libro")
+
+    assert resp.status_code == 200
+    catalog = {
+        item["title"]: item["cover_url"]
+        for item in resp.json()["items"]
+        if item["source"] == "catalog"
+    }
+    assert catalog["Open Library"] == "https://covers.openlibrary.org/b/id/1-L.jpg"
+    assert catalog["Google Books"] == (
+        "https://books.google.com/books/content?id=x&img=1&zoom=3&edge=curl"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Fail-soft
 # ---------------------------------------------------------------------------

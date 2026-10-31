@@ -1,0 +1,35 @@
+# 030 · Visual Consistency Polish — Tareas
+
+- [x] Crear `apps/web/src/lib/constants/pagination.ts` con la constante compartida `PAGE_SIZE = 20`.
+- [x] Sustituir `DASHBOARD_PAGE_SIZE` en `apps/web/src/lib/books/seed.ts` por la constante común, sin cambiar el tamaño de paginación de notas.
+- [x] Sustituir `DEFAULT_PAGE_SIZE` en `apps/web/src/lib/hooks/useBooks.ts` por la constante común, sin cambiar su comportamiento existente.
+- [x] Crear `apps/web/src/lib/books/filters.ts` con serialización, validación y normalización de los filtros `q`, `status` y `rating`.
+- [x] Implementar en el módulo de filtros la omisión de valores por defecto y el descarte de parámetros inválidos o desconocidos.
+- [x] Añadir al dashboard Server Component el consumo de `searchParams` y convertirlos en filtros iniciales mediante el helper compartido.
+- [x] Pasar los filtros iniciales normalizados tanto a `getInitialBooks` como a `LibraryGrid`.
+- [x] Actualizar `LibraryGrid` para inicializar búsqueda, status y rating desde la query actual.
+- [x] Sincronizar desde `LibraryGrid` los cambios de búsqueda, status y rating con la URL mediante navegación cliente, evitando recargas duras y navegaciones redundantes.
+- [x] Hacer que `LibraryGrid` rehidrate sus filtros cuando cambien `useSearchParams`, incluyendo navegación atrás y adelante.
+- [x] Conservar en `LibraryGrid` la carga y el debounce existentes, evitando reintroducir valores inválidos o perder defaults al actualizar la URL.
+- [x] Crear el mapa compartido de estados y el componente `StatusBadge` en `apps/web/src/components/book/StatusBadge.tsx` con etiquetas i18n, variantes y clases para los tres estados.
+- [x] Sustituir en `BookCard` el mapa y badge inline por `StatusBadge`, preservando la apariencia existente.
+- [x] Sustituir en `BookHeader` el mapa y badge inline por `StatusBadge`, preservando la apariencia existente.
+- [x] Crear `apps/web/src/components/book/StarRating.tsx` como primitivo único para dibujo, tamaños y colores de estrellas en modo readonly e interactivo.
+- [x] Adaptar `RatingStars` para reutilizar `StarRating` en modo readonly con tamaños coherentes.
+- [x] Adaptar `InteractiveRatingStars` para reutilizar `StarRating` en modo interactivo, conservando su interacción y semántica ARIA.
+- [x] Reemplazar las estrellas inline de `BookHeader` por `RatingStars` o la composición del primitivo compartido, conservando su semántica ARIA.
+- [x] Convertir `BookCard` en un anchor real mediante `Link` de Next.js con `href={`/book/${book.id}`}` y retirar la navegación basada en `router.push`/`onClick`.
+- [x] Retirar de `LibraryGrid` y de sus tipos el callback de navegación que ya no necesita `BookCard`.
+- [x] Mostrar `t("book.unknownAuthor")` en `BookCard` cuando `authors` esté vacío.
+- [x] Actualizar los tests de `BookCard` para cubrir el fallback i18n de autores y el anchor con el `href` real del libro.
+- [x] Añadir tests del módulo de filtros para round-trip de query params, defaults y descarte de valores inválidos.
+- [x] Actualizar los tests del dashboard y `LibraryGrid` para cubrir la query inicial, la sincronización de filtros y la restauración mediante historial atrás/adelante.
+- [x] Añadir tests de paridad del `StatusBadge` para `want_to_read`, `reading` y `read` entre `BookCard` y `BookHeader`.
+- [x] Actualizar los tests de `RatingStars`, `InteractiveRatingStars` y `BookHeader` para verificar el primitivo único, tamaños coherentes, accesibilidad e interacción existente.
+- [x] Revisar mediante búsqueda que no queden definiciones duplicadas de page size, mapas locales de estados ni implementaciones inline divergentes de estrellas.
+- [x] Actualizar la documentación si aplica.
+- [x] Ejecutar `cd apps/web && npm run test` y corregir cualquier regresión de tests o hidratación.
+- [x] Ejecutar `cd apps/web && npm run lint` y corregir todos los errores o warnings introducidos.
+- [x] Ejecutar `cd apps/web && npm run build` y corregir cualquier regresión de tipos, compilación o navegación.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.

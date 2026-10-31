@@ -6,31 +6,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { cn } from "@/lib/utils";
 import { Book } from "@/types/book";
 import { deleteBook } from "@/lib/api/books";
 import { useTranslation } from "@/lib/i18n";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { RatingStars } from "@/components/book/RatingStars";
+import { StatusBadge } from "@/components/book/StatusBadge";
 
 interface BookHeaderProps {
   book: Book;
-}
-
-/** Mapea estado a variante de badge shadcn */
-function statusVariant(
-  status: Book["status"],
-): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "reading":
-      return "default"; // azul
-    case "read":
-      return "secondary"; // verde-ish
-    case "want_to_read":
-    default:
-      return "outline";
-  }
 }
 
 export function BookHeader({ book }: BookHeaderProps) {
@@ -38,12 +24,6 @@ export function BookHeader({ book }: BookHeaderProps) {
   const { settings } = useSettings();
   const router = useRouter();
   const queryClient = useQueryClient();
-
-  const statusLabels: Record<Book["status"], string> = {
-    reading: t("book.status.reading"),
-    read: t("book.status.read"),
-    want_to_read: t("book.status.wantToRead"),
-  };
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteBook(book.id),
@@ -152,40 +132,11 @@ export function BookHeader({ book }: BookHeaderProps) {
 
         {/* Badges: Status + Rating */}
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-              "bg-muted text-muted-foreground",
-            )}
-          >
-            {statusLabels[book.status]}
-          </span>
+          <StatusBadge status={book.status} />
 
-          {book.rating !== null &&
-            book.rating > 0 &&
-            (() => {
-              const rating = book.rating as number;
-              return (
-                <span
-                  className="inline-flex items-center gap-1 text-amber-500"
-                  aria-label={t("rating.aria", { count: rating, max: 5 })}
-                >
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <svg
-                      key={i}
-                      className={cn(
-                        "size-4",
-                        i < rating ? "fill-current" : "fill-muted text-muted",
-                      )}
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                    </svg>
-                  ))}
-                </span>
-              );
-            })()}
+          {book.rating !== null && book.rating > 0 && (
+            <RatingStars rating={book.rating} size="md" />
+          )}
         </div>
 
         {/* Eliminar libro (confirmación según preferencia del lector) */}

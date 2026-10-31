@@ -19,12 +19,13 @@ const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   getBookSuggestions: vi.fn(),
   lookupBook: vi.fn(),
+  searchParams: { current: new URLSearchParams() },
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push, replace: mocks.replace }),
   usePathname: () => "/dashboard",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mocks.searchParams.current,
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -186,6 +187,7 @@ describe("LibraryGrid", () => {
     mocks.getSession.mockReset();
     mocks.getBookSuggestions.mockReset();
     mocks.lookupBook.mockReset();
+    mocks.searchParams.current = new URLSearchParams();
     mocks.getSession.mockResolvedValue({
       data: { session: { access_token: "test-token" } },
       error: null,
@@ -206,7 +208,7 @@ describe("LibraryGrid", () => {
     return render(ui, { wrapper: Wrapper });
   }
 
-  it("renders the grid with the initial books and navigates on card click", async () => {
+  it("renders the grid with the initial books as real links to each book", async () => {
     const fetchMock = stubPaginatedFetch();
     renderGrid(
       <LibraryGrid initialBooks={[DATASET[0], DATASET[1]]} initialTotal={25} />,
@@ -217,8 +219,11 @@ describe("LibraryGrid", () => {
       within(screen.getByTestId("books-grid")).getByText("Libro 1"),
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Libro 1" }));
-    expect(mocks.push).toHaveBeenCalledWith("/book/b1");
+    expect(
+      within(screen.getByTestId("books-grid")).getByRole("link", {
+        name: "Libro 1",
+      }),
+    ).toHaveAttribute("href", "/book/b1");
 
     expect(fetchMock).toHaveBeenCalled();
   });
@@ -240,6 +245,11 @@ describe("LibraryGrid", () => {
       );
       expect(titles.length).toBeGreaterThan(0);
     });
+    // La URL se sincroniza con navegación cliente (sin recarga dura).
+    expect(mocks.push).toHaveBeenCalledWith(
+      "/dashboard?status=reading",
+      expect.anything(),
+    );
   });
 
   it("filters by rating select and updates the query param", async () => {
@@ -255,6 +265,10 @@ describe("LibraryGrid", () => {
     await waitFor(() => {
       expect(lastFetchUrl(fetchMock)).toContain("rating=5");
     });
+    expect(mocks.push).toHaveBeenCalledWith(
+      "/dashboard?rating=5",
+      expect.anything(),
+    );
   });
 
   it("debounces the search input (no request per keystroke)", async () => {
@@ -323,14 +337,14 @@ describe("LibraryGrid", () => {
 
     await screen.findByTestId("books-grid");
     expect(
-      within(screen.getByTestId("books-grid")).getAllByRole("button"),
+      within(screen.getByTestId("books-grid")).getAllByRole("link"),
     ).toHaveLength(20);
 
     await userEvent.click(screen.getByTestId("load-more"));
 
     await waitFor(() => {
       expect(
-        within(screen.getByTestId("books-grid")).getAllByRole("button"),
+        within(screen.getByTestId("books-grid")).getAllByRole("link"),
       ).toHaveLength(25);
     });
     await waitFor(() => {
@@ -358,6 +372,42 @@ describe("LibraryGrid", () => {
     });
 
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("restores filters when searchParams change (back/forward)", async () => {
+    const fetchMock = stubPaginatedFetch();
+    const { rerender } = renderGrid(
+      <LibraryGrid initialBooks={[]} initialTotal={0} />,
+    );
+    await screen.findByTestId("books-grid");
+
+    // Simula navegación atrás/adelante: la URL cambia externamente.
+    mocks.searchParams.current = new URLSearchParams("status=reading");
+    rerender(<LibraryGrid initialBooks={[]} initialTotal={0} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Leyendo" })).toHaveAttribute(
+        "data-state",
+        "active",
+      );
+    });
+  });
+
+  it("avoids redundant navigation when the query is already in sync", async () => {
+    mocks.searchParams.current = new URLSearchParams("status=reading");
+    stubPaginatedFetch();
+    renderGrid(
+      <LibraryGrid
+        initialBooks={[]}
+        initialTotal={0}
+        initialFilters={{ status: "reading" }}
+      />,
+    );
+    await screen.findByTestId("books-grid");
+
+    // El tab ya está activo y la URL ya refleja el filtro: no debe re-navegar.
+    await userEvent.click(screen.getByRole("tab", { name: "Leyendo" }));
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it("keeps loaded books and shows an inline error when load-more fails, then retries", async () => {
@@ -393,7 +443,7 @@ describe("LibraryGrid", () => {
     // Error no destructivo: el grid conserva los 20 libros ya cargados.
     expect(await screen.findByTestId("load-more-error")).toBeInTheDocument();
     expect(
-      within(screen.getByTestId("books-grid")).getAllByRole("button"),
+      within(screen.getByTestId("books-grid")).getAllByRole("link"),
     ).toHaveLength(20);
     expect(screen.queryByTestId("error-state")).not.toBeInTheDocument();
 
@@ -403,7 +453,7 @@ describe("LibraryGrid", () => {
 
     await waitFor(() => {
       expect(
-        within(screen.getByTestId("books-grid")).getAllByRole("button"),
+        within(screen.getByTestId("books-grid")).getAllByRole("link"),
       ).toHaveLength(25);
     });
     expect(screen.queryByTestId("load-more-error")).not.toBeInTheDocument();
