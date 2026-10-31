@@ -26,7 +26,7 @@ USER_ID = "00000000-0000-0000-0000-000000000001"
 EXPECTED_RESPONSE = {
     "title": "La Comunidad del Anillo",
     "authors": ["J. R. R. Tolkien"],
-    "cover_url": "https://covers.openlibrary.org/b/id/1-S.jpg",
+    "cover_url": "https://covers.openlibrary.org/b/id/1-L.jpg",
     "page_count": 423,
     "publisher": "Minotauro",
     "published_date": "2001",
@@ -38,7 +38,11 @@ OPEN_LIBRARY_PAYLOAD = {
     f"ISBN:{VALID_ISBN}": {
         "title": "La Comunidad del Anillo",
         "authors": [{"name": "J. R. R. Tolkien"}],
-        "cover": {"small": "https://covers.openlibrary.org/b/id/1-S.jpg"},
+        "cover": {
+            "small": "https://covers.openlibrary.org/b/id/1-S.jpg",
+            "medium": "https://covers.openlibrary.org/b/id/1-M.jpg",
+            "large": "https://covers.openlibrary.org/b/id/1-L.jpg",
+        },
         "number_of_pages": 423,
         "publishers": [{"name": "Minotauro"}],
         "publish_date": "2001",
@@ -103,7 +107,7 @@ def test_lookup_usa_el_servicio_correctamente(client):
         return_value=ISBNLookupResponse(
             title="La Comunidad del Anillo",
             authors=["J. R. R. Tolkien"],
-            cover_url="https://covers.openlibrary.org/b/id/1-S.jpg",
+            cover_url="https://covers.openlibrary.org/b/id/1-L.jpg",
         )
     )
     _override_service(service)
@@ -199,7 +203,7 @@ def test_lookup_fallback_search_json(client):
     body = resp.json()
     assert body["title"] == "Unlimited power"
     assert body["authors"] == ["Tony Robbins"]
-    assert body["cover_url"] == "https://covers.openlibrary.org/b/id/4166860-M.jpg"
+    assert body["cover_url"] == "https://covers.openlibrary.org/b/id/4166860-L.jpg"
     assert body["published_date"] == "1987"
     assert body["description"] is None
     assert body["page_count"] is None

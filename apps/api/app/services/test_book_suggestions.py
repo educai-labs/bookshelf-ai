@@ -358,7 +358,7 @@ async def test_buscar_texto_open_library():
     assert results[0].isbn13 == "9780441172719"
     assert results[0].title == "Dune"
     assert results[0].authors == ["Frank Herbert"]
-    assert results[0].cover_url == "https://covers.openlibrary.org/b/id/12345-M.jpg"
+    assert results[0].cover_url == "https://covers.openlibrary.org/b/id/12345-L.jpg"
     assert len(client.calls) == 1
 
 
@@ -376,7 +376,12 @@ async def test_buscar_texto_fallback_google_books():
                             "industryIdentifiers": [
                                 {"type": "ISBN_13", "identifier": "9780441172719"}
                             ],
-                            "imageLinks": {"thumbnail": "https://books.google.com/covers/1.jpg"},
+                            "imageLinks": {
+                                "thumbnail": (
+                                    "http://books.google.com/books/content?id=abc"
+                                    "&printsec=frontcover&img=1&zoom=1&edge=curl"
+                                )
+                            },
                         }
                     }
                 ]
@@ -390,7 +395,9 @@ async def test_buscar_texto_fallback_google_books():
 
     assert results[0].isbn13 == "9780441172719"
     assert results[0].title == "Dune"
-    assert results[0].cover_url == "https://books.google.com/covers/1.jpg"
+    assert results[0].cover_url == (
+        "https://books.google.com/books/content?id=abc&printsec=frontcover&img=1&zoom=3&edge=curl"
+    )
     assert len(client.calls) == 2
 
 

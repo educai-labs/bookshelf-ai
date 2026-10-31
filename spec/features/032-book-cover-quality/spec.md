@@ -1,6 +1,6 @@
 # 032 · Book Cover Quality
 
-**Estado:** propuesta
+**Estado:** hecho
 
 ## Qué hace
 

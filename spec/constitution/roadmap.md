@@ -33,6 +33,7 @@ _Orden y estado de las features. Cada entrada apunta a su carpeta en `features/.
 27. **028 · Navigation & Layout Robustness** — Fixes Z5-01…Z5-09 + Z1-03/04: item "Libros" sin 404, `error.tsx`/`not-found.tsx`/`global-error.tsx`, sidebar drawer en móvil con `aria-current`, `redirectTo` respetado tras login (validado, sin open redirects), 401→login con status preservado, paridad título+autor en el seed SSR y ConfirmDialog desacoplado a `components/ui`.
 28. **029 · Chat AI Perf & A11y** — Fixes Z4-01…Z4-09: historial sin serializar en cada token (debounce/fin de stream), Markdown memoizado por mensaje, AbortController + botón "Detener", `aria-live`/`role="status"` y keys estables, `rel="noopener noreferrer"` en el sanitize y Alert de error con título y reintento.
 29. **030 · Visual Consistency Polish** — Fixes Z1-05…Z1-09 + Z3-11: constante única de page size, filtros del dashboard sincronizados con la URL (compartir/bookmark/atrás), fallback de autores unificado, mapa único status→badge, BookCard con `<Link>` (prefetch) y un solo primitivo de estrellas.
+30. **032 · Book Cover Quality** — Portadas nítidas en toda la app: lookup prioriza `cover.large` (OL `/api/books`), `-L.jpg` en URLs construidas desde `cover_i` (fallbacks `search.json` de 023/025), Google Books `thumbnail` → `zoom=3`+`https`; backfill fail-soft por ISBN13 que refresca `cover_url` de libros ya guardados (nunca degrada ni borra; rate limit 100 req/min + caché 1h).
 
 ## Siguiente 🔜
 
@@ -44,6 +45,5 @@ _Sin comprometer ni ordenar del todo. Ideas que respetan la constitución._
 
 - **018 · AI Recommendations** — GET `/api/v1/ai/recommendations` → prompt con historial (títulos, ratings, temas de notas) → 5 sugerencias con justificación. Modelo estructurado.
 - **019 · MCP Server** — `FastMCP` server Python. Tools: `search_books`, `get_book_notes`, `chat_with_library`, `create_book`, `create_note`. STDIO transport. Auth via env vars.
-- **032 · Book Cover Quality** — Portadas nítidas en toda la app: lookup prioriza `cover.large` (OL `/api/books`), `-L.jpg` en URLs construidas desde `cover_i` (fallbacks search.json de 023/025), Google Books `thumbnail` → `zoom=3`+`https`; backfill fail-soft re-lookup por ISBN13 refresca `cover_url` de libros ya guardados (nunca degrada/borra; rate limit 100 req/min + caché 1h).
 
 > Cada feature nueva se crea como `features/NNN-nombre-feature/` con `spec.md`, `plan.md` y `tasks.md` antes de tocar código.

@@ -28,7 +28,7 @@ VALID_ISBN = "9788445001234"
 METADATA = ISBNLookupResponse(
     title="La Comunidad del Anillo",
     authors=["J. R. R. Tolkien"],
-    cover_url="https://covers.openlibrary.org/b/id/1-S.jpg",
+    cover_url="https://covers.openlibrary.org/b/id/1-L.jpg",
     page_count=423,
     publisher="Minotauro",
     published_date="2001",
@@ -297,7 +297,7 @@ def _seed_book(fake_db, **overrides) -> dict:
         "isbn13": VALID_ISBN,
         "title": "La Comunidad del Anillo",
         "authors": ["J. R. R. Tolkien"],
-        "cover_url": "https://covers.openlibrary.org/b/id/1-S.jpg",
+        "cover_url": "https://covers.openlibrary.org/b/id/1-L.jpg",
         "page_count": 423,
         "publisher": "Minotauro",
         "published_date": "2001-01-01",
@@ -361,7 +361,7 @@ async def test_create_book_201(client):
     assert body["isbn13"] == VALID_ISBN
     assert body["title"] == "La Comunidad del Anillo"
     assert body["authors"] == ["J. R. R. Tolkien"]
-    assert body["cover_url"] == "https://covers.openlibrary.org/b/id/1-S.jpg"
+    assert body["cover_url"] == "https://covers.openlibrary.org/b/id/1-L.jpg"
     assert body["page_count"] == 423
     assert body["publisher"] == "Minotauro"
     assert body["published_date"] == "2001-01-01"  # "2001" → 2001-01-01 (date DB)
@@ -398,7 +398,7 @@ async def test_create_book_desde_search_json_campos_null_y_fecha(client):
             return ISBNLookupResponse(
                 title="Unlimited power",
                 authors=["Tony Robbins"],
-                cover_url="https://covers.openlibrary.org/b/id/4166860-M.jpg",
+                cover_url="https://covers.openlibrary.org/b/id/4166860-L.jpg",
                 published_date="1987",
                 description=None,
                 page_count=None,
@@ -413,7 +413,7 @@ async def test_create_book_desde_search_json_campos_null_y_fecha(client):
     body = resp.json()
     assert body["title"] == "Unlimited power"
     assert body["authors"] == ["Tony Robbins"]
-    assert body["cover_url"] == "https://covers.openlibrary.org/b/id/4166860-M.jpg"
+    assert body["cover_url"] == "https://covers.openlibrary.org/b/id/4166860-L.jpg"
     assert body["published_date"] == "1987-01-01"
     assert body["description"] is None
     assert body["page_count"] is None

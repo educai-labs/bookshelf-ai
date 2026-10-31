@@ -25,12 +25,27 @@ OPEN_LIBRARY_PAYLOAD = {
     f"ISBN:{VALID_ISBN}": {
         "title": "La Comunidad del Anillo",
         "authors": [{"name": "J. R. R. Tolkien"}],
-        "cover": {"small": "https://covers.openlibrary.org/b/id/1-S.jpg"},
+        "cover": {
+            "small": "https://covers.openlibrary.org/b/id/1-S.jpg",
+            "medium": "https://covers.openlibrary.org/b/id/1-M.jpg",
+            "large": "https://covers.openlibrary.org/b/id/1-L.jpg",
+        },
         "number_of_pages": 423,
         "publishers": [{"name": "Minotauro"}],
         "publish_date": "2001",
     }
 }
+
+# Thumbnail real de Google Books: `http` + `zoom=1` (~128px). La normalización
+# (feature 032) debe transformarlo a `https` + `zoom=3`.
+GOOGLE_BOOKS_THUMBNAIL = (
+    "http://books.google.com/books/content?id=abc123"
+    "&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api"
+)
+GOOGLE_BOOKS_COVER_NORMALIZED = (
+    "https://books.google.com/books/content?id=abc123"
+    "&printsec=frontcover&img=1&zoom=3&edge=curl&source=gbs_api"
+)
 
 GOOGLE_BOOKS_PAYLOAD = {
     "items": [
@@ -38,7 +53,7 @@ GOOGLE_BOOKS_PAYLOAD = {
             "volumeInfo": {
                 "title": "La Comunidad del Anillo",
                 "authors": ["J. R. R. Tolkien"],
-                "imageLinks": {"thumbnail": "https://books.google.com/covers/1.jpg"},
+                "imageLinks": {"thumbnail": GOOGLE_BOOKS_THUMBNAIL},
                 "pageCount": 423,
                 "publisher": "Minotauro",
                 "publishedDate": "2001",
@@ -60,7 +75,7 @@ class FakeAsyncClient:
         self.calls = 0
         self.side_effect = side_effect
 
-    async def get(self, url, params=None):
+    async def get(self, url, params=None, timeout=None):
         self.calls += 1
         if self.side_effect is None:
             raise AssertionError("get() llamado sin side_effect configurado")
@@ -93,7 +108,7 @@ async def test_buscar_exito_open_library():
 
     assert result.title == "La Comunidad del Anillo"
     assert result.authors == ["J. R. R. Tolkien"]
-    assert result.cover_url == "https://covers.openlibrary.org/b/id/1-S.jpg"
+    assert result.cover_url == "https://covers.openlibrary.org/b/id/1-L.jpg"
     assert result.page_count == 423
     assert result.publisher == "Minotauro"
     assert result.published_date == "2001"
@@ -128,7 +143,7 @@ async def test_buscar_fallback_google_books_cuando_open_library_vacio():
 
     assert result.title == "La Comunidad del Anillo"
     assert result.authors == ["J. R. R. Tolkien"]
-    assert result.cover_url == "https://books.google.com/covers/1.jpg"
+    assert result.cover_url == GOOGLE_BOOKS_COVER_NORMALIZED
     assert result.publisher == "Minotauro"
     assert client.calls == 3  # Open Library /api/books + search.json + Google Books
 
@@ -155,7 +170,7 @@ async def test_buscar_fallback_google_books_cuando_open_library_incompleta():
 
     result = await service.buscar(VALID_ISBN)
 
-    assert result.cover_url == "https://books.google.com/covers/1.jpg"
+    assert result.cover_url == GOOGLE_BOOKS_COVER_NORMALIZED
     assert client.calls == 3
 
 
@@ -260,7 +275,7 @@ async def test_buscar_fallback_search_json_mapea_doc_completo():
 
     assert result.title == "Unlimited power"
     assert result.authors == ["Tony Robbins"]
-    assert result.cover_url == "https://covers.openlibrary.org/b/id/4166860-M.jpg"
+    assert result.cover_url == "https://covers.openlibrary.org/b/id/4166860-L.jpg"
     assert result.published_date == "1987"
     assert result.description is None
     assert result.page_count is None
@@ -301,7 +316,7 @@ async def test_buscar_search_json_selecciona_doc_con_isbn_exacto():
     result = await service.buscar(EVIDENCE_ISBN)
 
     assert result.title == "Unlimited power"
-    assert result.cover_url == "https://covers.openlibrary.org/b/id/4166860-M.jpg"
+    assert result.cover_url == "https://covers.openlibrary.org/b/id/4166860-L.jpg"
 
 
 async def test_buscar_search_json_resuelve_isbn10_equivalente():
@@ -387,7 +402,7 @@ async def test_buscar_search_json_descarta_doc_incompleto_y_continua_google():
 
     result = await service.buscar(EVIDENCE_ISBN)
 
-    assert result.cover_url == "https://books.google.com/covers/1.jpg"
+    assert result.cover_url == GOOGLE_BOOKS_COVER_NORMALIZED
 
 
 async def test_buscar_search_json_descarta_doc_sin_autores_y_continua_google():
@@ -415,7 +430,7 @@ async def test_buscar_search_json_descarta_doc_sin_autores_y_continua_google():
 
     result = await service.buscar(EVIDENCE_ISBN)
 
-    assert result.cover_url == "https://books.google.com/covers/1.jpg"
+    assert result.cover_url == GOOGLE_BOOKS_COVER_NORMALIZED
 
 
 @pytest.mark.parametrize(
@@ -611,3 +626,149 @@ async def test_buscar_mensaje_isbn_not_found_menciona_tres_fuentes():
     assert "search.json" in message
     assert "Google Books" in message
     assert EVIDENCE_ISBN in message
+
+
+# --- Prioridad de portada en /api/books (feature 032) -------------------------
+
+
+async def _buscar_con_cover(cover: dict[str, str]) -> str | None:
+    payload = {
+        f"ISBN:{VALID_ISBN}": {
+            "title": "La Comunidad del Anillo",
+            "authors": [{"name": "J. R. R. Tolkien"}],
+            "cover": cover,
+        }
+    }
+    client = FakeAsyncClient(side_effect=lambda url, params: _response(payload))
+    service = ISBNLookupService(client=client)
+    result = await service.buscar(VALID_ISBN)
+    return result.cover_url
+
+
+@pytest.mark.parametrize(
+    "cover,esperado",
+    [
+        (
+            {
+                "small": "https://covers.openlibrary.org/b/id/1-S.jpg",
+                "medium": "https://covers.openlibrary.org/b/id/1-M.jpg",
+                "large": "https://covers.openlibrary.org/b/id/1-L.jpg",
+            },
+            "https://covers.openlibrary.org/b/id/1-L.jpg",
+        ),
+        (
+            {
+                "small": "https://covers.openlibrary.org/b/id/1-S.jpg",
+                "medium": "https://covers.openlibrary.org/b/id/1-M.jpg",
+            },
+            "https://covers.openlibrary.org/b/id/1-M.jpg",
+        ),
+        (
+            {"small": "https://covers.openlibrary.org/b/id/1-S.jpg"},
+            "https://covers.openlibrary.org/b/id/1-S.jpg",
+        ),
+    ],
+)
+async def test_buscar_api_books_prioriza_large_medium_small(cover, esperado):
+    """Criterio 032: prioridad `large → medium → small` (nunca `small` si hay mayor)."""
+    assert await _buscar_con_cover(cover) == esperado
+
+
+# --- Normalización de Google Books (feature 032) -------------------------------
+
+
+@pytest.mark.parametrize(
+    "entrada,esperado",
+    [
+        (
+            "http://books.google.com/books/content?id=x&img=1&zoom=1&edge=curl",
+            "https://books.google.com/books/content?id=x&img=1&zoom=3&edge=curl",
+        ),
+        (
+            "https://books.google.com/books/content?id=x&img=1&zoom=1&edge=curl",
+            "https://books.google.com/books/content?id=x&img=1&zoom=3&edge=curl",
+        ),
+        (
+            # Ausencia de zoom: se conserva (solo se fuerza https).
+            "http://books.google.com/books/content?id=x&img=1&edge=curl",
+            "https://books.google.com/books/content?id=x&img=1&edge=curl",
+        ),
+        (
+            # `zoom=10` no debe transformarse (límite `\b`).
+            "http://books.google.com/books/content?id=x&img=1&zoom=10",
+            "https://books.google.com/books/content?id=x&img=1&zoom=10",
+        ),
+        (
+            # Parámetros adicionales (`source`, `printsec`) se conservan.
+            "http://books.google.com/books/content?id=x&printsec=frontcover&img=1&zoom=1&source=gbs_api",
+            "https://books.google.com/books/content?id=x&printsec=frontcover&img=1&zoom=3&source=gbs_api",
+        ),
+    ],
+)
+async def test_buscar_google_books_normaliza_url(entrada, esperado):
+    """Criterio 032: fallback Google Books fuerza `https` y `zoom=3` (nunca `zoom=1`)."""
+    payload = {
+        "items": [
+            {
+                "volumeInfo": {
+                    "title": "La Comunidad del Anillo",
+                    "authors": ["J. R. R. Tolkien"],
+                    "imageLinks": {"thumbnail": entrada},
+                }
+            }
+        ]
+    }
+
+    def side_effect(url, params=None):
+        if "api/books" in url:
+            return _response({}, status_code=404)
+        if "search.json" in url:
+            return _response({"docs": []})
+        return _response(payload)
+
+    client = FakeAsyncClient(side_effect=side_effect)
+    service = ISBNLookupService(client=client)
+
+    result = await service.buscar(VALID_ISBN)
+
+    assert result.cover_url == esperado
+
+
+# --- search.json en la búsqueda textual (feature 032) -------------------------
+
+
+async def test_buscar_texto_search_json_construye_L_jpg():
+    payload = {
+        "docs": [
+            {
+                "title": "Dune",
+                "author_name": ["Frank Herbert"],
+                "isbn": ["9780441172719"],
+                "cover_i": 12345,
+            }
+        ]
+    }
+    client = FakeAsyncClient(side_effect=lambda url, params: _response(payload))
+    service = ISBNLookupService(client=client)
+
+    results = await service.buscar_texto("dune", 8)
+
+    assert results[0].cover_url == "https://covers.openlibrary.org/b/id/12345-L.jpg"
+
+
+async def test_buscar_texto_search_json_sin_cover_i_devuelve_none():
+    payload = {
+        "docs": [
+            {
+                "title": "Dune",
+                "author_name": ["Frank Herbert"],
+                "isbn": ["9780441172719"],
+            }
+        ]
+    }
+    client = FakeAsyncClient(side_effect=lambda url, params: _response(payload))
+    service = ISBNLookupService(client=client)
+
+    results = await service.buscar_texto("dune", 8)
+
+    assert results[0].cover_url is None
