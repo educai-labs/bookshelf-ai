@@ -29,7 +29,7 @@ from typing import Annotated
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import StreamingResponse
 from google.api_core.exceptions import GoogleAPIError
 from postgrest.exceptions import APIError
@@ -41,7 +41,9 @@ from app.core.errors import map_supabase_error, raise_book_not_found, raise_http
 from app.core.logging import get_logger
 from app.core.security import get_current_user
 from app.models.chat import ChatMode, ChatRequest
+from app.models.recommendations import RecommendationResponse
 from app.services import chat as chat_service
+from app.services import recommendations as recommendations_service
 
 logger = get_logger(__name__)
 
@@ -105,6 +107,36 @@ async def chat(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get(
+    "/recommendations",
+    response_model=RecommendationResponse,
+    summary="Recomendaciones personalizadas de libros",
+    description=(
+        "Genera hasta `limit` recomendaciones de libros basadas en el historial "
+        "de lectura del usuario (libros `read`/`reading` y sus notas), usando el "
+        "modelo de chat configurable con structured output JSON. Caché en memoria "
+        "de 24 h por usuario. Historial insuficiente o respuesta inválida del "
+        "modelo → lista vacía."
+    ),
+)
+async def get_recommendations(
+    supabase: Annotated[Client, Depends(get_supabase)],
+    user_id: Annotated[str, Depends(get_current_user)],
+    limit: Annotated[int, Query(ge=1, le=10, description="Nº de recomendaciones (1-10)")] = 5,
+) -> RecommendationResponse:
+    """Recomendaciones on-demand con caché TTL de 24 h por usuario.
+
+    Los errores de Supabase se mapean a HTTP estructurado (sin exponer detalles
+    internos); los errores de Gemini/JSON ya se resuelven como fallback vacío
+    dentro del servicio (el endpoint nunca devuelve un 500 por una respuesta
+    inválida del modelo).
+    """
+    try:
+        return await recommendations_service.get_recommendations(supabase, user_id, limit)
+    except APIError as exc:
+        map_supabase_error(exc)
 
 
 # ---------------------------------------------------------------------------
