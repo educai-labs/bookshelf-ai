@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "bookshelf": {
+        "type": "local",
+        "command": ["/home/emped/EducAI/projects/bookshelf/.venv/bin/python3", "server.py"],
+        "cwd": "apps/mcp"
+      }
+    }
+  }
+}
