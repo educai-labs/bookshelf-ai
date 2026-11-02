@@ -1,0 +1,48 @@
+[project]
+name = "bookshelf-mcp"
+version = "0.1.0"
+description = "Servidor MCP local y monousuario de Bookshelf (feature 019)."
+requires-python = ">=3.11"
+dependencies = [
+    # Única dependencia de terceros NUEVA que introduce esta feature.
+    "fastmcp>=2.0",
+    # El resto son paquetes ya empleados por el backend (`apps/api`), reutilizados
+    # por import (chat, lookup ISBN, renderizado de notas y vectorización).
+    "supabase>=2.0,<3",
+    "google-generativeai>=0.8",
+    "pydantic>=2.8,<3",
+    "httpx>=0.27,<1",
+    "tiktoken>=0.7",
+    "markdown2>=2.4.0",
+    "bleach>=6.0.0",
+    "structlog>=24.1",
+    "python-dotenv>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.6",
+    "black>=24",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+# Tests en la raíz de `apps/mcp` (convención tech-stack: `test_*.py`).
+testpaths = ["."]
+# Resuelve los módulos de `apps/mcp` (`config`, `db`, `tools`, …) desde el
+# árbol fuente, y `app` (backend) vía el adaptador/conftest.
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]

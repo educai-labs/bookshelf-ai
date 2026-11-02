@@ -1,0 +1,55 @@
+---
+estado: "hecho"
+---
+
+# 019 · MCP Server — Tareas
+
+- [x] Crear `apps/mcp/pyproject.toml` con Python 3.11+, `fastmcp` como única dependencia nueva y la configuración de pytest, Ruff y Black.
+- [x] Crear la estructura de paquetes `apps/mcp/tools/` y los módulos base necesarios para el servidor MCP.
+- [x] Implementar `apps/mcp/config.py` para validar `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` y `MCP_USER_ID` al arrancar.
+- [x] Añadir a la configuración la validación de URL y UUID, el soporte opcional de `GOOGLE_BOOKS_API_KEY` y mensajes de error sin valores secretos.
+- [x] Implementar `apps/mcp/errors.py` con códigos, mensajes y conversión centralizada de excepciones a errores MCP estructurados.
+- [x] Implementar `apps/mcp/schemas.py` con modelos Pydantic explícitos de entrada y salida para las cinco tools, incluidos `book_id` opcional y `status`/`rating` nulables.
+- [x] Implementar `apps/mcp/db.py` para crear el cliente Supabase con `service_role` solo después de validar la configuración.
+- [x] Añadir en `apps/mcp/db.py` helpers de ownership que incorporen siempre `user_id = MCP_USER_ID` en lecturas e inserciones.
+- [x] Implementar en `apps/mcp/db.py` las consultas limitadas a las columnas de los contratos de libros y notas.
+- [x] Implementar la búsqueda case-insensitive por título o autores y la consulta de notas padre (`chunk_index = 0`) ordenadas por `created_at DESC`.
+- [x] Crear `apps/mcp/adapters/backend.py` para importar los servicios de `apps/api` sin levantar FastAPI, hacer HTTP ni requerir `API_BASE_URL`.
+- [x] Documentar en el adaptador cualquier ajuste de path, cliente o firma necesario para reutilizar los servicios del backend sin duplicar lógica de dominio.
+- [x] Implementar `apps/mcp/tools/books.py` con `search_books`, validación de query y mapeo de resultados al esquema de salida.
+- [x] Implementar en `search_books` el resultado vacío para coincidencias inexistentes y el error estructurado para query vacía o con espacios.
+- [x] Implementar `get_book_notes` con validación de UUID, comprobación de ownership y selección exclusiva de notas `chunk_index = 0`.
+- [x] Mapear en las tools de lectura los libros inexistentes o ajenos a errores estructurados sin revelar información de otro usuario.
+- [x] Implementar `apps/mcp/tools/ai.py` con `chat_with_library` y validación de ownership del `book_id` opcional.
+- [x] Conectar `chat_with_library` al modo libro o al RAG global mediante los helpers importados del backend, conservando RPC, umbrales y prompts existentes.
+- [x] Consumir todos los tokens de `stream_chat_tokens` y devolver una única respuesta de texto completa.
+- [x] Convertir fallos de Gemini, RPC, timeout y libro inexistente o ajeno en errores MCP estructurados sin stack trace.
+- [x] Implementar `apps/mcp/tools/write.py` con `create_book` y normalización ISBN mediante `ISBNLookupService`.
+- [x] Implementar `create_book` con fuentes y fallback del lookup existente, filtro por `MCP_USER_ID` y comprobación de duplicados antes de insertar.
+- [x] Mapear en `create_book` ISBN inválido, metadatos no encontrados, duplicados y errores de inserción a los códigos MCP correspondientes.
+- [x] Implementar `create_note` con comprobación de ownership del libro antes de cualquier inserción.
+- [x] Renderizar el Markdown original a HTML y crear la nota con `chunk_index = 0` y el placeholder de embedding de 768 dimensiones.
+- [x] Programar `vectorize_note(note_id, user_id, book_id, content)` mediante el pipeline existente sin duplicar chunking ni embeddings.
+- [x] Devolver desde `create_note` la nota creada y convertir sus fallos de dependencia a errores estructurados.
+- [x] Crear `apps/mcp/tools/__init__.py` y `apps/mcp/server.py` con configuración segura de Gemini y registro de exactamente las cinco tools.
+- [x] Configurar `server.py` para validar el entorno antes de registrar tools y ejecutar FastMCP por STDIO con `python server.py`.
+- [x] Separar los logs del canal STDIO y verificar que ningún secreto, stack trace o detalle de conexión llegue al agente.
+- [x] Añadir tests de configuración que cubran variables ausentes o inválidas y comprueben que los mensajes no contienen secretos.
+- [x] Añadir tests de esquemas y errores para validación de entradas, respuestas nulables y sanitización de excepciones.
+- [x] Añadir tests con mocks de Supabase para el camino feliz de `search_books` y `get_book_notes`, incluyendo filtros, columnas, orden y `chunk_index`.
+- [x] Añadir tests de aislamiento con dos usuarios para comprobar que ninguna tool lee, modifica o inserta datos del usuario incorrecto.
+- [x] Añadir tests de `chat_with_library` para modo libro, RAG global, consumo completo del stream y respuesta única no vacía.
+- [x] Añadir tests de `chat_with_library` para libro ajeno o inexistente y fallos de Gemini, RPC y timeout sin stack trace.
+- [x] Añadir tests de `create_book` para ISBN válido, normalización, fallback, ISBN inválido, no encontrado, duplicado y ausencia de filas duplicadas.
+- [x] Añadir tests de `create_note` para Markdown conservado, HTML renderizado, placeholder, libro ajeno o inexistente y ausencia de inserción inválida.
+- [x] Añadir tests que verifiquen el encolado de `vectorize_note` sin bloquear ni reimplementar el pipeline.
+- [x] Añadir un test de arranque o harness que ejecute `cd apps/mcp && python server.py` y confirme que la salida de protocolo no se mezcla con logs.
+- [x] Crear `apps/mcp/README.md` con arranque local, tabla de variables obligatorias y opcionales, y ejemplos para Claude Desktop y Cursor.
+- [x] Añadir al README la advertencia de servidor local monousuario, bypass de RLS por `service_role` y prohibición de compartir o commitear secretos.
+- [x] Ejecutar `cd apps/mcp && pytest -v` y corregir cualquier fallo de la suite.
+- [x] Ejecutar `cd apps/mcp && ruff check . && black --check .` y corregir errores de lint o formato.
+- [x] Verificar que no se añade `API_BASE_URL`, que no hay llamadas HTTP a `apps/api`, que no se duplican prompts o pipelines y que no se modifica `apps/web`, `apps/api` ni `supabase/migrations/`.
+- [x] Verificar que `fastmcp` es la única dependencia de terceros nueva en `apps/mcp`.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.
