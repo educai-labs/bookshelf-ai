@@ -28,6 +28,7 @@ export const en = {
   sidebar: {
     dashboard: "Dashboard",
     books: "Books",
+    recommendations: "Recommendations",
     settings: "Settings",
     navAria: "Main navigation",
     openMenu: "Open menu",
@@ -253,6 +254,22 @@ export const en = {
     noCoverAria: "No cover available",
     errorToast: "Couldn't load suggestions",
   },
+  recommendations: {
+    title: "Recommendations",
+    subtitle: "Personalized picks based on your reading history.",
+    loadingAria: "Loading recommendations",
+    gridAria: "Recommendations list",
+    confidenceAria: "Confidence: {value}%",
+    empty: {
+      title: "No recommendations yet",
+      description:
+        "Read and rate more books so we can suggest titles you'll love.",
+    },
+    error: {
+      title: "Error loading recommendations",
+      description: "We couldn't load your recommendations. Try again.",
+    },
+  },
   settings: {
     title: "Settings",
     subtitle: "Manage your preferences, privacy and accessibility.",
@@ -386,6 +403,7 @@ export const es: Dictionary = {
   sidebar: {
     dashboard: "Dashboard",
     books: "Libros",
+    recommendations: "Recomendaciones",
     settings: "Configuración",
     navAria: "Navegación principal",
     openMenu: "Abrir menú",
@@ -612,6 +630,23 @@ export const es: Dictionary = {
     coverAlt: "Portada de {title}",
     noCoverAria: "Sin portada disponible",
     errorToast: "No se pudieron cargar las sugerencias",
+  },
+  recommendations: {
+    title: "Recomendaciones",
+    subtitle: "Sugerencias personalizadas según tu historial de lectura.",
+    loadingAria: "Cargando recomendaciones",
+    gridAria: "Lista de recomendaciones",
+    confidenceAria: "Confianza: {value}%",
+    empty: {
+      title: "Aún no hay recomendaciones",
+      description:
+        "Lee y valora más libros para que podamos sugerirte títulos que te gusten.",
+    },
+    error: {
+      title: "Error al cargar recomendaciones",
+      description:
+        "No se pudieron cargar tus recomendaciones. Inténtalo de nuevo.",
+    },
   },
   settings: {
     title: "Configuración",

@@ -3,7 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, Menu, Settings, X } from "lucide-react";
+import {
+  BookOpen,
+  LayoutDashboard,
+  Menu,
+  Settings,
+  Sparkles,
+  X,
+} from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 import { Button } from "@/components/ui/button";
@@ -46,6 +53,12 @@ export function Sidebar() {
       label: t("sidebar.books"),
       href: "/dashboard",
       icon: BookOpen,
+    },
+    {
+      id: "recommendations",
+      label: t("sidebar.recommendations"),
+      href: "/recommendations",
+      icon: Sparkles,
     },
     {
       id: "settings",

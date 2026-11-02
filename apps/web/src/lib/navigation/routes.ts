@@ -17,6 +17,7 @@ export const STATIC_ROUTES: readonly string[] = [
   "/dashboard",
   "/settings",
   "/chat",
+  "/recommendations",
 ];
 
 /** Patrones de rutas dinámicas (con segmento `[param]`). */

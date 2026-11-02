@@ -1,0 +1,51 @@
+---
+estado: "hecho"
+---
+
+# 018 · AI Recommendations — Tareas
+
+- [x] Crear `apps/api/app/models/recommendations.py` con los modelos Pydantic v2 `RecommendationItem` y `RecommendationResponse`.
+- [x] Validar en `RecommendationItem` que `authors` no esté vacío, que `reason` sea obligatorio y que `confidence` esté entre 0 y 1.
+- [x] Exponer desde los modelos el esquema compatible con `response_schema` de Gemini.
+- [x] Crear `apps/api/app/services/recommendations.py` como servicio aislado de generación de recomendaciones.
+- [x] Implementar la carga de libros propios con estado `read` o `reading`, usando exclusivamente el `user_id` derivado del JWT.
+- [x] Implementar la segunda consulta Supabase para cargar únicamente `book_notes` de esos libros con `chunk_index=0`.
+- [x] Extraer del historial títulos, autores, ratings y temas/keywords mediante la heurística ligera definida en el plan.
+- [x] Construir un prompt determinista que incluya los datos del usuario, ejemplos few-shot de JSON y la instrucción de responder únicamente JSON.
+- [x] Configurar Gemini con `settings.gemini_chat_model`, `response_mime_type: application/json` y el `response_schema` de `RecommendationResponse`.
+- [x] Ejecutar la llamada síncrona a Gemini fuera del event loop.
+- [x] Parsear y validar la respuesta de Gemini con `RecommendationResponse`, devolviendo recomendaciones limitadas al valor solicitado.
+- [x] Implementar el fallback a lista vacía con log estructurado ante historial insuficiente, JSON inválido o respuesta que no cumpla el modelo.
+- [x] Añadir en el servicio una caché TTL acotada en memoria por `user_id` con duración de 24 horas, sin persistencia en PostgreSQL.
+- [x] Crear en `apps/api/app/api/v1/endpoints/ai.py` el endpoint autenticado `GET /api/v1/ai/recommendations`.
+- [x] Añadir el query parameter `limit` con default 5 y rango permitido de 1 a 10.
+- [x] Usar `get_current_user` en el endpoint y propagar de forma segura los errores de Supabase y Gemini sin exponer secretos.
+- [x] Mantener intacto el contrato SSE existente de `POST /api/v1/ai/chat`.
+- [x] Añadir `apps/api/app/services/test_recommendations.py` con mocks de Gemini y Supabase.
+- [x] Probar en el servicio el límite de una o dos consultas, el filtro de estados y notas, el aislamiento por usuario y la ausencia de consultas con identificadores del cliente.
+- [x] Probar que el prompt contiene los datos del usuario y ejemplos de JSON few-shot.
+- [x] Probar parseo y validación de una respuesta JSON válida y el fallback vacío con log para respuestas inválidas o historial insuficiente.
+- [x] Probar que una cache hit no realiza una segunda llamada a Gemini ni a Supabase durante el TTL.
+- [x] Añadir `apps/api/app/api/v1/endpoints/test_ai_recommendations.py` para probar autenticación, límites de `limit` y respuestas del endpoint.
+- [x] Crear `apps/web/src/lib/api/recommendations.ts` con el contrato de recomendaciones y el cliente autenticado mediante el access token de Supabase.
+- [x] Hacer que el cliente llame a `GET /api/v1/ai/recommendations?limit=5`, valide la respuesta con el mecanismo Zod existente y convierta errores 401/5xx en `ApiError`.
+- [x] Crear la ruta protegida `apps/web/src/app/(dashboard)/recommendations/page.tsx`.
+- [x] Crear `apps/web/src/components/recommendations/RecommendationsPage.tsx` como componente cliente con carga, datos, vacío y error/reintento.
+- [x] Renderizar el título y un grid responsive de cards con `Card`, `Badge`, `Skeleton` y `Button` existentes.
+- [x] Mostrar en cada card título, autores, razón y badge de `confidence` sin añadir dependencias ni modificar componentes compartidos.
+- [x] Añadir `role="grid"`, roles apropiados para cards/badges, `aria-live`, foco visible y orden de teclado lógico.
+- [x] Implementar el botón `Reintentar` para repetir la petición sin recargar ni navegar.
+- [x] Añadir `/recommendations` al sidebar con estado activo, reutilizando un icono existente y preservando el drawer móvil.
+- [x] Añadir en `apps/web/src/lib/i18n/dictionaries.ts` todas las claves necesarias de navegación, título, cards, confidence, carga, vacío, error y reintento en español e inglés.
+- [x] Añadir `apps/web/src/lib/api/recommendations.test.ts` con mocks de autenticación, fetch y respuestas exitosas y 401/5xx.
+- [x] Añadir `apps/web/src/components/recommendations/RecommendationsPage.test.tsx` para datos renderizados, carga, vacío, error/reintento, accesibilidad e i18n.
+- [x] Verificar mediante búsqueda que los componentes de recomendaciones no contienen strings visibles hardcodeados ni dependencias frontend nuevas.
+- [x] Ejecutar `cd apps/api && pytest -v` y corregir cualquier fallo en los tests backend.
+- [x] Ejecutar `cd apps/api && ruff check . && black --check .` y corregir errores de lint o formato backend.
+- [ ] Ejecutar `cd apps/api && docker build -t bookshelf-api .` y corregir cualquier fallo de construcción de la imagen.
+- [x] Ejecutar `cd apps/web && npm run test` y corregir cualquier fallo en los tests frontend.
+- [x] Ejecutar `cd apps/web && npm run lint` y corregir errores o warnings introducidos.
+- [x] Ejecutar `cd apps/web && npm run build` y corregir cualquier fallo de tipos, compilación o routing.
+- [x] Actualizar documentación si aplica.
+- [x] Validar contra los criterios de aceptación de `spec.md`.
+- [x] Mover la feature a "Hecho" en `../../constitution/roadmap.md`.
